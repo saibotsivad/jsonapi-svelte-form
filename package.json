@@ -1,0 +1,17 @@
+{
+  "name": "root",
+  "private": true,
+  "scripts": {
+    "test": "uvu packages test",
+    "build": "pnpm -r --filter=\"./packages\" exec -- bundt index.js",
+    "clean": "rimraf packages/*/node_modules node_modules pnpm-lock.yaml"
+  },
+  "devDependencies": {
+    "lerna": "^4.0.0",
+    "uvu": "^0.5.1"
+  },
+  "dependencies": {
+    "bundt": "github:saibotsivad/bundt",
+    "rimraf": "^3.0.2"
+  }
+}

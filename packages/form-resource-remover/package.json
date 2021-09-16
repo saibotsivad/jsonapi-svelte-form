@@ -1,0 +1,26 @@
+{
+  "name": "@saibotsivad/jsonapi-resource-remover",
+  "version": "0.0.0",
+  "description": "Handle removeResource events, by deleting a resource and removing all relationships to it.",
+  "type": "module",
+  "main": "build.js",
+  "module": "build.mjs",
+  "unpkg": "build.unpkg.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./build.mjs",
+      "require": "./build.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "*.d.ts",
+    "build.*"
+  ],
+  "author": "saibotsivad",
+  "license": "VOL",
+  "dependencies": {
+    "just-diff": "^3.1.1"
+  }
+}
