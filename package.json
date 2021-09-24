@@ -4,7 +4,7 @@
   "scripts": {
     "test": "uvu packages test",
     "build": "pnpm -r --filter=\"./packages\" exec -- bundt index.js",
-    "clean": "rimraf packages/*/node_modules node_modules pnpm-lock.yaml"
+    "clean": "rimraf pnpm-lock.yaml packages/*/node_modules packages/*/build.* node_modules"
   },
   "devDependencies": {
     "lerna": "^4.0.0",

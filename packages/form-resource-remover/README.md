@@ -1,0 +1,1 @@
+# @saibotsivad/jsonapi-resource-remover
