@@ -1,0 +1,11 @@
+{
+  "name": "@saibotsivad/jsonapi-form-types",
+  "version": "0.0.0",
+  "description": "TypeScript types common to multiple packages.",
+  "types": "index.d.ts",
+  "author": "saibotsivad",
+  "license": "VOL",
+  "dependencies": {
+    "just-diff": "^3.1.1"
+  }
+}
