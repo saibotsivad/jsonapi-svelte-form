@@ -11,7 +11,12 @@ test('toSegments', () => {
 	assert.equal(
 		toSegments('/f~1o~1o/b~0a~0r'),
 		[ 'f/o/o', 'b~a~r' ],
-		'encoded characters'
+		'escaped characters'
+	)
+	assert.equal(
+		toSegments('/~01'),
+		[ '~1' ],
+		'order of un-escaping is correct'
 	)
 })
 
@@ -24,7 +29,12 @@ test('fromSegments', () => {
 	assert.equal(
 		fromSegments([ 'f/o/o', 'b~a~r' ]),
 		'/f~1o~1o/b~0a~0r',
-		'encoded characters'
+		'escaping characters'
+	)
+	assert.equal(
+		fromSegments([ '~1' ]),
+		'/~01',
+		'order of un-escaping is correct'
 	)
 })
 
