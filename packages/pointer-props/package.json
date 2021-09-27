@@ -3,20 +3,20 @@
   "version": "0.0.0",
   "description": "Object manipulation (get/set/del/merge) using JSON Pointer paths.",
   "type": "module",
-  "main": "build.js",
-  "module": "build.mjs",
-  "unpkg": "build.unpkg.js",
+  "main": "dist/build.js",
+  "module": "dist/build.mjs",
+  "unpkg": "dist/build.unpkg.js",
   "types": "index.d.ts",
   "exports": {
     ".": {
-      "import": "./build.mjs",
-      "require": "./build.js"
+      "import": "./dist/build.mjs",
+      "require": "./dist/build.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
     "*.d.ts",
-    "build.*"
+    "dist"
   ],
   "author": "saibotsivad",
   "license": "VOL",

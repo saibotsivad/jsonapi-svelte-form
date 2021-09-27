@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "test": "uvu packages test",
-    "build": "pnpm -r --filter=\"./packages\" exec -- bundt index.js",
-    "clean": "rimraf pnpm-lock.yaml packages/*/node_modules packages/*/build.* node_modules"
+    "build": "pnpm -r --filter=\"./packages\" --filter=\"!./packages/form-types\" exec -- bundt index.js",
+    "clean": "rimraf pnpm-lock.yaml packages/*/node_modules packages/*/build packages/*/build.* node_modules"
   },
   "devDependencies": {
     "bundt": "github:saibotsivad/bundt",

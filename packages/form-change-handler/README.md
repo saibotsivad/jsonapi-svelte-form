@@ -23,7 +23,7 @@ You would use it like this:
 The event must emit an `Object` containing these properties:
 
 * `id: String` - The identifier of the resource being changed
-* `keypath: String` - The dot-notation keypath of the property being changed, e.g. `attributes.email`
+* `keypath: Array<String>` - The keypath array of the property being changed, e.g. `[ "attributes", "email" ]`
 * `value: *` - The value to set at that keypath
 
 ## Undefined vs Empty String

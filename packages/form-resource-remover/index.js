@@ -1,14 +1,20 @@
 import _diff from 'just-diff'
 const { diff } = _diff
 
+/**
+ * Given a `resourceRemove` event, update the JSON:Api Form by deleting that resource, and removing from
+ * all relationships across all resources.
+ *
+ * @type {import('.').onRemoveResource}
+ */
 export function onRemoveResource (form, { detail: { id, type } }) {
-	// TODO this removes the resource and all related, but if you delete a resource it doesn't go through and delete the relationships in *that* resource
-	// TODO it probably shouldn't, it should be part of the responsibility of whoever calls this
-	delete form?.data?.[id]
-	for (const resourceId in (form?.data || {})) {
-		const resource = form.data[resourceId]
-		for (const relationshipName of Object.keys(resource?.relationships || {})) {
-			const relationship = resource.relationships?.[relationshipName]
+	delete form.data[id]
+	form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
+
+	for (let resourceId in (form.data)) {
+		let resource = form.data[resourceId]
+		for (let relationshipName of Object.keys(resource.relationships || {})) {
+			const relationship = resource.relationships[relationshipName]
 			if (Array.isArray(relationship.data)) {
 				relationship.data = relationship.data.filter(r => r.id !== id || r.type !== type)
 				if (!relationship.data.length) delete relationship.data
@@ -18,7 +24,11 @@ export function onRemoveResource (form, { detail: { id, type } }) {
 			if (!relationship.data) delete resource.relationships[relationshipName]
 		}
 		if (!Object.keys(resource.relationships || {}).length) delete resource.relationships
+
+		// Note: this could probably be optimized, to only check for diffs on the items that had
+		// their relationships changed.
+		form.changes[resourceId] = diff(form.original[resourceId] || {}, form.data[resourceId] || {})
 	}
-	form.changes = diff(form.original, form.data)
+
 	return form
 }
