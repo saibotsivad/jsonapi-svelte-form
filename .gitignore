@@ -1,8 +1,5 @@
 /node_modules
-/packages/*/node_modules
-/packages/*/dist
-/packages/*/build.*
+/dist
 .DS_Store
-*-lock.*
 *.lock
 *.log
