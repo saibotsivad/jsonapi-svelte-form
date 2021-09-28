@@ -29,4 +29,4 @@ Change categories are:
 
 [Unreleased]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...HEAD
 [1.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v1.0.0
-[0.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v0.0.0
+[0.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0-init...v0.0.0
