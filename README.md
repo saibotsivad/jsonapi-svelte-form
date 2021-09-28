@@ -1,5 +1,7 @@
 # JSON:API Svelte Form
 
+Tooling for building forms in Svelte for JSON:API backends.
+
 TODO intro
 
 ## 1: Change Handler
@@ -11,7 +13,7 @@ You would use it like this:
 ```sveltehtml
 <script>
 	import MyForm from './path/to/MyForm.svelte'
-	import { onFormChange } from '@saibotsivad/jsonapi-svelte-form'
+	import { onFormChange } from 'jsonapi-svelte-form'
 	export let form = {
 		data: { /*...*/ },
 		original: { /*...*/ },

@@ -1,5 +1,23 @@
 {
   "name": "jsonapi-svelte-form",
+  "version": "0.0.0",
+  "description": "Tooling for building forms in Svelte for JSON:API backends.",
+  "author": {
+    "name": "Tobias Davis",
+    "email": "tobias@davistobias.com",
+    "url": "https://davistobias.com"
+  },
+  "license": "SEE LICENSE IN LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/saibotsivad/jsonapi-svelte-form/issues"
+  },
+  "homepage": "https://github.com/saibotsivad/jsonapi-svelte-form",
+  "keywords": [
+    "jsonapi",
+    "json-api",
+    "form",
+    "svelte"
+  ],
   "type": "module",
   "main": "dist/build.js",
   "module": "dist/build.mjs",
