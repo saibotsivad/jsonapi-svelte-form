@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/json-api-utils.iml" filepath="$PROJECT_DIR$/.idea/json-api-utils.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/jsonapi-svelte-form.iml" filepath="$PROJECT_DIR$/.idea/jsonapi-svelte-form.iml" />
     </modules>
   </component>
 </project>
