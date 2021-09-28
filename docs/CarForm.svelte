@@ -11,19 +11,17 @@
 	 */
 	export let carId
 
-	/** @type {import('..').JsonApiData} */
-	export let data
+	/** @type {import('..').JsonApiForm} */
+	export let form
 	/** @type boolean */
 	export let readonly
-	// TODO
-	export let errors
 
 	/**
 	 * For any related resources that we want to build components for, we will
 	 * want to construct them reactively, so that adding/removing them (editing
 	 * the form) will automatically update the view.
 	 */
-	$: wheels = data?.[carId]?.relationships?.wheels?.data || []
+	$: wheels = form.data[carId]?.relationships?.wheels?.data || []
 
 	/**
 	 * For any editable related resources, you'll need to create dispatchers to send the
@@ -39,13 +37,23 @@
 		isArray: true,
 		type: 'wheel'
 	})
-	const removeWheel = wheelId => dispatcher('removeResource', {
-		id: wheelId,
-		type: 'wheel'
-	})
+	/**
+	 * If the resource you are removing has relationships, those related resources are
+	 * not automatically removed (see the `removePosition` function below), so if you
+	 * know that removing them is appropriate, you will need to do that by hand.
+	 */
+	const removeWheel = wheelId => {
+		for (const { id, type } of (form.data[wheelId]?.relationships?.positions?.data || [])) {
+			dispatcher('removeResource', { id, type })
+		}
+		dispatcher('removeResource', {
+			id: wheelId,
+			type: 'wheel'
+		})
+	}
 	const addPositionToWheel = wheelId => dispatcher('createResource', {
 		relatedId: wheelId,
-		relatedName: 'position',
+		relatedName: 'positions',
 		isArray: true,
 		type: 'position'
 	})
@@ -59,9 +67,8 @@
 	label="Color"
 	id="001"
 	keypath={[ 'attributes', 'color' ]}
-	{data}
+	{form}
 	{readonly}
-	{errors}
 	on:formChange
 />
 
@@ -76,20 +83,18 @@
 				label="Size"
 				id={wheel.id}
 				keypath={[ 'attributes', 'size' ]}
-				{data}
+				{form}
 				{readonly}
-				{errors}
 				on:formChange
 			/>
 			<br>
-			{#each (data[wheel.id]?.relationships?.position?.data || []) as position}
+			{#each (form.data[wheel.id]?.relationships?.positions?.data || []) as position}
 				<InputText
 					label="Position"
 					id={position.id}
 					keypath={[ 'attributes', 'name' ]}
-					{data}
+					{form}
 					{readonly}
-					{errors}
 					on:formChange
 				/>
 				<button on:click={() => removePosition(position.id)}>

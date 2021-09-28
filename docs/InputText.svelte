@@ -4,8 +4,8 @@
 
 	/** @type string */
 	export let label
-	/** @type {import('..').JsonApiDataMap} */
-	export let data
+	/** @type {import('..').JsonApiForm} */
+	export let form
 	/**
 	 * The identifier of the resource to bind to.
 	 * @type string
@@ -24,13 +24,10 @@
 	export let keypath
 	/** @type boolean */
 	export let readonly
-	// TODO
-	export let errors
 
-	$: accessor = [ id, ...keypath ]
-	$: value = get(data, accessor) || ''
-	// TODO
-	$: error = errors && get(errors[id], keypath)
+	$: accessor = [ id, ...(keypath || []) ]
+	$: value = get(form.data, accessor) || ''
+	$: error = get(form.errors, accessor)
 	/**
 	 * It is likely true that for each JSON:API resource + keypath, that you'll only have one
 	 * element. Therefore, an ID based on those properties is likely unique to the page. If that

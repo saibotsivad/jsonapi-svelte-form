@@ -3,9 +3,9 @@ import svelte from 'rollup-plugin-svelte'
 import resolve from '@rollup/plugin-node-resolve'
 
 export default {
-	input: 'demo/app.js',
+	input: 'docs/app.js',
 	output: {
-		file: 'demo/build/app.js',
+		file: 'docs/build/app.js',
 		format: 'iife'
 	},
 	plugins: [

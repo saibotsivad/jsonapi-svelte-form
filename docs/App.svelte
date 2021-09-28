@@ -4,11 +4,14 @@
 	import { formFromResponse, resourceCreator, removeResource, onFormChange } from '../src/index.js'
 
 	/** @type {import('..').JsonApiForm} */
-	let form
+	let form = {
+		data: {},
+		original: {},
+		errors: {},
+		changes: {}
+	}
 	/** @type boolean */
 	let readonly = false
-	// TODO
-	let errors
 
 	/**
 	 * Here we are demonstrating one of the ways to reactively update the display based on
@@ -16,7 +19,7 @@
 	 * used to, e.g., leave a "Save Changes" button disabled until there are actual changes.
 	 * @type boolean
 	 */
-	$: hasChanges = Object.keys(form?.changes || {}).length
+	$: hasChanges = Object.keys(form.changes || {}).length
 
 	/** @type {import('..').createResource} */
 	const create = resourceCreator()
@@ -30,6 +33,18 @@
 		})
 </script>
 
+<h1>JSON:API Svelte Form (Demo)</h1>
+
+<p>
+	This is a demo of the
+	<a href="https://github.com/saibotsivad/jsonapi-svelte-form"><code>jsonapi-svelte-form</code></a>
+	library, which is a tool to help make forms which use
+	<a href="https://jsonapi.org/">JSON:API</a>
+	for the backend.
+</p>
+
+<hr>
+
 <p>
 	You would probably normally use your routing library or other framework tools to
 	load data for a form, but here we're simulating it by "fetching" from a mock API.
@@ -41,9 +56,8 @@
 
 <CarForm
 	carId="001"
-	data={form?.data}
+	{form}
 	{readonly}
-	{errors}
 	on:formChange={event => form = onFormChange(form, event)}
 	on:createResource={event => form = create(form, event)}
 	on:removeResource={event => form = removeResource(form, event)}

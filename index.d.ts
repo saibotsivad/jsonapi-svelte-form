@@ -40,6 +40,32 @@ export interface JsonApiChange {
 export interface JsonApiForm {
 	original: JsonApiDataMap;
 	data: JsonApiDataMap;
+	/**
+	 * The errors is a map of resource identifier to an object which has the same property
+	 * structure as the resource, but properties only exist if there is an error associated
+	 * with that property, and the values are all human-readable string error messages.
+	 *
+	 * For example, if a resource had an error on a `name` property, the `JsonApiForm` might
+	 * look like this:
+	 *
+	 *   {
+	 *       data: {
+	 *           001: {
+	 *               attributes: {
+	 *                   name: 'foo'
+	 *               }
+	 *           }
+	 *       },
+	 *       errors: {
+	 *           001: {
+	 *               attributes: {
+	 *                   name: 'The name must not be "foo".'
+	 *               }
+	 *           }
+	 *       }
+	 *   }
+	 */
+	errors: JsonApiDataMap;
 	changes: JsonApiChangesMap;
 }
 
