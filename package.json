@@ -37,7 +37,8 @@
   },
   "files": [
     "*.d.ts",
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "test": "uvu src '\\.test\\.js$'",

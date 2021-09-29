@@ -22,7 +22,7 @@ Change categories are:
 ### Removed
 ### Security
 
-## [0.0.1] - 2021-090-29
+## [0.0.2] - 2021-090-29
 
 ### Changed
 - Based on some conversations with @TehShrike and others, reworked to be Svelte
