@@ -11,7 +11,7 @@ so much boilerplate.
 
 Build a form with a couple Svelte component wrappers:
 
-```sveltehtml
+```html
 <script>
 	import { Form, Field } from 'jsonapi-svelte-form'
 	export let form // a specially formed object
@@ -99,7 +99,7 @@ const JsonApiForm = {
 
 When the `set` function of the `Field` component is called, e.g.:
 
-```sveltehtml
+```html
 <Field bind:form let:set let:value id="id001" keypath={[ 'attributes', 'color' ]}>
 	<input type="text" {value} on:input={event => set(event.target.value)} />
 </Field>
