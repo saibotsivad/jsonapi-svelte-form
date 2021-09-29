@@ -20,6 +20,7 @@
 
 	$: tokens = keypath.split ? toTokens(keypath) : keypath
 	$: value = get(form.data[id], tokens) || ''
+	$: errors = get(form.errors[id], tokens) || []
 
 	/*
 	Because the diff calculation is expensive, we debounce so that e.g. entering text
@@ -49,7 +50,6 @@
 		reassignment process can't use the normal shortcut found in e.g. @lukeed/dset,
 		thus the following method which is limited in depth.
 		 */
-		form.data[id] ?? (form.data[id] = {})
 		l > 0 && (form.data[id][k1] ?? (form.data[id][k1] = {}))
 		l > 1 && (form.data[id][k1][k2] ?? (form.data[id][k1][k2] = {}))
 		l > 2 && (form.data[id][k1][k2][k3] ?? (form.data[id][k1][k2][k3] = {}))
@@ -66,4 +66,4 @@
 	}
 </script>
 
-<slot {value} {set} />
+<slot {value} {set} {errors} />

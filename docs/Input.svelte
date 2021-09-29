@@ -27,21 +27,19 @@
 	/** @type boolean */
 	export let readonly
 
-	$: accessor = [ id, ...(keypath || []) ]
-	$: error = get(form.errors, accessor)
 	/**
 	 * It is likely true that for each JSON:API resource + keypath, that you'll only have one
 	 * element. Therefore, an ID based on those properties is likely unique to the page. If that
 	 * is not true for your form, you'd need to do something extra here
 	 * @type string
 	 */
-	$: elementId = accessor.join('.')
+	$: elementId = [ id, ...(keypath.split ? keypath : keypath.join('.')) ].join('.')
 </script>
 
 <label for={elementId}>
 	{label}
 </label>
-<Field bind:form {id} {keypath} on:change let:set let:value >
+<Field bind:form {id} {keypath} on:change let:set let:value let:errors>
 	<input
 		{type}
 		{readonly}
@@ -50,7 +48,7 @@
 		on:*
 		id={elementId}
 	>
+	{#each errors as error}
+		<div class="invalid-feedback">{error.title}</div>
+	{/each}
 </Field>
-{#if error}
- 	<div class="invalid-feedback">{error}</div>
-{/if}
