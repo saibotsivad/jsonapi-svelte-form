@@ -1,7 +1,9 @@
 <script>
-	import { createEventDispatcher } from 'svelte'
 	import { get } from 'pointer-props'
+	import { Field } from '../src/index.js'
 
+	/** @type string */
+	export let type = 'text'
 	/** @type string */
 	export let label
 	/** @type {import('..').JsonApiForm} */
@@ -26,7 +28,6 @@
 	export let readonly
 
 	$: accessor = [ id, ...(keypath || []) ]
-	$: value = get(form.data, accessor) || ''
 	$: error = get(form.errors, accessor)
 	/**
 	 * It is likely true that for each JSON:API resource + keypath, that you'll only have one
@@ -35,22 +36,21 @@
 	 * @type string
 	 */
 	$: elementId = accessor.join('.')
-
-	const dispatcher = createEventDispatcher()
-	const oninput = event => dispatcher('formChange', { id, keypath, value: event.target.value })
 </script>
 
 <label for={elementId}>
 	{label}
 </label>
-<input
-	type="text"
-	{readonly}
-	{value}
-	on:input={oninput}
-	on:*
-	id={elementId}
->
+<Field bind:form {id} {keypath} on:change let:set let:value >
+	<input
+		{type}
+		{readonly}
+		{value}
+		on:input={event => set(event.target.value)}
+		on:*
+		id={elementId}
+	>
+</Field>
 {#if error}
  	<div class="invalid-feedback">{error}</div>
 {/if}

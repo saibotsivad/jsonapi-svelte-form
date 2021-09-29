@@ -1,6 +1,6 @@
 <script>
-	import { createEventDispatcher } from 'svelte'
-	import InputText from './InputText.svelte'
+	import { Form } from '../src/index.js'
+	import Input from './Input.svelte'
 
 	/**
 	 * You can construct a `JsonApiForm` component in many ways, but in this
@@ -16,105 +16,88 @@
 	/** @type boolean */
 	export let readonly
 
-	/**
-	 * For any related resources that we want to build components for, we will
-	 * want to construct them reactively, so that adding/removing them (editing
-	 * the form) will automatically update the view.
-	 */
+	// For any related resources that we want to build components for, we will
+	// want to construct them reactively, so that adding/removing them (editing
+	// the form) will automatically update the view.
 	$: wheels = form.data[carId]?.relationships?.wheels?.data || []
 
-	/**
-	 * For any editable related resources, you'll need to create dispatchers to send the
-	 * createResource/removeResource events. Here they are in the CarForm component, but
-	 * it's likely that they'll be embedded in deeper components, in which case you'd
-	 * simply forward the event along:
-	 *   <WheelEditor on:createResource on:removeResource {data} ... />
-	 */
-	const dispatcher = createEventDispatcher()
-	const addWheel = () => dispatcher('createResource', {
-		relatedId: carId,
-		relatedName: 'wheels',
+	// To add a resource, call the slot's `create` function. You could call it directly
+	// from your component, or if that gets unwieldy you can make a function and call
+	// it like this.
+	const addPositionToWheel = (create, wheelId) => create({
+		relId: wheelId,
+		relName: 'positions',
 		isArray: true,
-		type: 'wheel'
+		type: 'position'
 	})
-	/**
-	 * If the resource you are removing has relationships, those related resources are
-	 * not automatically removed (see the `removePosition` function below), so if you
-	 * know that removing them is appropriate, you will need to do that by hand.
-	 */
-	const removeWheel = wheelId => {
+	// If the resource you are removing has relationships, those related resources are
+	// not automatically removed, so if you know that removing them is appropriate you will
+	// need to do that by hand, like this.
+	const removeWheel = (remove, wheelId) => {
 		for (const { id, type } of (form.data[wheelId]?.relationships?.positions?.data || [])) {
-			dispatcher('removeResource', { id, type })
+			remove({ id, type })
 		}
-		dispatcher('removeResource', {
+		remove({
 			id: wheelId,
 			type: 'wheel'
 		})
 	}
-	const addPositionToWheel = wheelId => dispatcher('createResource', {
-		relatedId: wheelId,
-		relatedName: 'positions',
-		isArray: true,
-		type: 'position'
-	})
-	const removePosition = positionId => dispatcher('removeResource', {
-		id: positionId,
-		type: 'position'
-	})
 </script>
 
-<InputText
-	label="Color"
-	id="001"
-	keypath={[ 'attributes', 'color' ]}
-	{form}
-	{readonly}
-	on:formChange
-/>
+<Form bind:form let:remove let:create on:create on:remove>
+	<Input
+		label="Color"
+		id="001"
+		keypath={[ 'attributes', 'color' ]}
+		bind:form
+		{readonly}
+		on:change
+	/>
 
-<div style="background-color: #ddd; padding: 1em; margin: 1em;">
-	<h3 style="margin-top: 0;">
-		Wheels
-	</h3>
+	<div style="background-color: #ddd; padding: 1em; margin: 1em;">
+		<h3 style="margin-top: 0;">
+			Wheels
+		</h3>
 
-	{#each wheels as wheel}
-		<div style="border: 1px solid #000; padding: 15px;">
-			<InputText
-				label="Size"
-				id={wheel.id}
-				keypath={[ 'attributes', 'size' ]}
-				{form}
-				{readonly}
-				on:formChange
-			/>
-			<br>
-			{#each (form.data[wheel.id]?.relationships?.positions?.data || []) as position}
-				<InputText
-					label="Position"
-					id={position.id}
-					keypath={[ 'attributes', 'name' ]}
-					{form}
+		{#each wheels as wheel}
+			<div style="border: 1px solid #000; padding: 15px;">
+				<Input
+					label="Size"
+					id={wheel.id}
+					keypath={[ 'attributes', 'size' ]}
+					bind:form
 					{readonly}
-					on:formChange
+					on:change
 				/>
-				<button on:click={() => removePosition(position.id)}>
-					Remove Position
+				<br>
+				{#each (form.data[wheel.id]?.relationships?.positions?.data || []) as position}
+					<Input
+						label="Position"
+						id={position.id}
+						keypath={[ 'attributes', 'name' ]}
+						bind:form
+						{readonly}
+						on:change
+					/>
+					<button on:click={() => remove(position)}>
+						Remove Position
+					</button>
+					<br>
+				{/each}
+				<br>
+				<button on:click={() => addPositionToWheel(create, wheel.id)}>
+					Add Position
 				</button>
 				<br>
-			{/each}
-			<br>
-			<button on:click={() => addPositionToWheel(wheel.id)}>
-				Add Position
-			</button>
-			<br>
-			<button on:click={() => removeWheel(wheel.id)}>
-				Remove Wheel
-			</button>
-		</div>
-	{/each}
+				<button on:click={() => removeWheel(remove, wheel.id)}>
+					Remove Wheel
+				</button>
+			</div>
+		{/each}
 
-	<button on:click={addWheel}>
-		Add Wheel
-	</button>
+		<button on:click={() => create({ relId: carId, relName: 'wheels', isArray: true, type: 'wheel' })}>
+			Add Wheel
+		</button>
 
-</div>
+	</div>
+</Form>

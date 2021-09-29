@@ -2,6 +2,12 @@
     'use strict';
 
     function noop() { }
+    function assign(tar, src) {
+        // @ts-ignore
+        for (const k in src)
+            tar[k] = src[k];
+        return tar;
+    }
     function run(fn) {
         return fn();
     }
@@ -19,6 +25,52 @@
     }
     function is_empty(obj) {
         return Object.keys(obj).length === 0;
+    }
+    function create_slot(definition, ctx, $$scope, fn) {
+        if (definition) {
+            const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
+            return definition[0](slot_ctx);
+        }
+    }
+    function get_slot_context(definition, ctx, $$scope, fn) {
+        return definition[1] && fn
+            ? assign($$scope.ctx.slice(), definition[1](fn(ctx)))
+            : $$scope.ctx;
+    }
+    function get_slot_changes(definition, $$scope, dirty, fn) {
+        if (definition[2] && fn) {
+            const lets = definition[2](fn(dirty));
+            if ($$scope.dirty === undefined) {
+                return lets;
+            }
+            if (typeof lets === 'object') {
+                const merged = [];
+                const len = Math.max($$scope.dirty.length, lets.length);
+                for (let i = 0; i < len; i += 1) {
+                    merged[i] = $$scope.dirty[i] | lets[i];
+                }
+                return merged;
+            }
+            return $$scope.dirty | lets;
+        }
+        return $$scope.dirty;
+    }
+    function update_slot_base(slot, slot_definition, ctx, $$scope, slot_changes, get_slot_context_fn) {
+        if (slot_changes) {
+            const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
+            slot.p(slot_context, slot_changes);
+        }
+    }
+    function get_all_dirty_from_scope($$scope) {
+        if ($$scope.ctx.length > 32) {
+            const dirty = [];
+            const length = $$scope.ctx.length / 32;
+            for (let i = 0; i < length; i++) {
+                dirty[i] = -1;
+            }
+            return dirty;
+        }
+        return -1;
     }
     function append(target, node) {
         target.appendChild(node);
@@ -123,6 +175,9 @@
     function add_render_callback(fn) {
         render_callbacks.push(fn);
     }
+    function add_flush_callback(fn) {
+        flush_callbacks.push(fn);
+    }
     let flushing = false;
     const seen_callbacks = new Set();
     function flush() {
@@ -206,6 +261,14 @@
                 }
             });
             block.o(local);
+        }
+    }
+
+    function bind(component, name, callback) {
+        const index = component.$$.props[name];
+        if (index !== undefined) {
+            component.$$.bound[index] = callback;
+            callback(component.$$.ctx[index]);
         }
     }
     function create_component(block) {
@@ -337,792 +400,8 @@
         }
     }
 
-    function dset(obj, keys, val) {
-    	keys.split && (keys=keys.split('.'));
-    	var i=0, l=keys.length, t=obj, x, k;
-    	for (; i < l;) {
-    		k = keys[i++];
-    		if (k === '__proto__' || k === 'constructor' || k === 'prototype') break;
-    		t = t[k] = (i === l) ? val : (typeof(x=t[k])===typeof(keys)) ? x : (keys[i]*0 !== 0 || !!~(''+keys[i]).indexOf('.')) ? {} : [];
-    	}
-    }
-
-    function dlv(t,e,l,n,r){for(e=e.split?e.split("."):e,n=0;n<e.length;n++)t=t?t[e[n]]:r;return t===r?l:t}
-
-    /*
-
-    Note on escaping order, from RFC6901:
-
-    > Evaluation of each reference token begins by decoding any escaped
-    > character sequence.  This is performed by first transforming any
-    > occurrence of the sequence '~1' to '/', and then transforming any
-    > occurrence of the sequence '~0' to '~'.  By performing the
-    > substitutions in this order, an implementation avoids the error of
-    > turning '~01' first into '~1' and then into '/', which would be
-    > incorrect (the string '~01' correctly becomes '~1' after
-    > transformation).
-
-    */
-
-    /**
-     * Convert a JSON Pointer into a list of unescaped tokens, e.g. `/foo/bar~1biz` to `['foo','bar/biz']`.
-     * @type {import("../index").toTokens}
-     */
-    const toTokens = function (path) {
-    	[ , ...path ] = path.split('/');
-    	let segments = [];
-    	for (let segment of path) {
-    		segments.push(segment.replaceAll('~1', '/').replaceAll('~0', '~'));
-    	}
-    	return segments
-    };
-
-    /**
-     * @param {String|Array<String>} input
-     * @returns {Array<String>}
-     */
-    const makeConsistent = input => input.split ? toTokens(input) : input;
-
-    /**
-     * Access a property by JSON Pointer, or by an array of property tokens.
-     * @type {import("../index").get}
-     */
-    const get = function (obj, path) {
-    	return dlv(obj, makeConsistent(path))
-    };
-
-    /**
-     * Set a deep property by JSON Pointer, or by an array of property tokens.
-     * @type {import("../index").set}
-     */
-    function set(obj, path, value) {
-    	dset(obj, makeConsistent(path), value);
-    	return obj
-    }
-
-    /**
-     * Remove a deep property by JSON Pointer, or by an array of property tokens.
-     * @type {import("../index").del}
-     */
-    function del(obj, path) {
-    	let segments = makeConsistent(path);
-    	let last = segments.pop();
-    	let item = dlv(obj, segments);
-    	if (Array.isArray(item)) item.splice(parseInt(last, 10), 1);
-    	else if (item) delete item[last];
-    	dset(obj, segments, item);
-    	return obj
-    }
-
-    /* docs/InputText.svelte generated by Svelte v3.43.0 */
-
-    function create_if_block(ctx) {
-    	let div;
-    	let t;
-
-    	return {
-    		c() {
-    			div = element("div");
-    			t = text(/*error*/ ctx[3]);
-    			attr(div, "class", "invalid-feedback");
-    		},
-    		m(target, anchor) {
-    			insert(target, div, anchor);
-    			append(div, t);
-    		},
-    		p(ctx, dirty) {
-    			if (dirty & /*error*/ 8) set_data(t, /*error*/ ctx[3]);
-    		},
-    		d(detaching) {
-    			if (detaching) detach(div);
-    		}
-    	};
-    }
-
-    function create_fragment$2(ctx) {
-    	let label_1;
-    	let t0;
-    	let t1;
-    	let input;
-    	let t2;
-    	let if_block_anchor;
-    	let mounted;
-    	let dispose;
-    	let if_block = /*error*/ ctx[3] && create_if_block(ctx);
-
-    	return {
-    		c() {
-    			label_1 = element("label");
-    			t0 = text(/*label*/ ctx[0]);
-    			t1 = space();
-    			input = element("input");
-    			t2 = space();
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    			attr(label_1, "for", /*elementId*/ ctx[2]);
-    			attr(input, "type", "text");
-    			input.readOnly = /*readonly*/ ctx[1];
-    			input.value = /*value*/ ctx[4];
-    			attr(input, "id", /*elementId*/ ctx[2]);
-    		},
-    		m(target, anchor) {
-    			insert(target, label_1, anchor);
-    			append(label_1, t0);
-    			insert(target, t1, anchor);
-    			insert(target, input, anchor);
-    			insert(target, t2, anchor);
-    			if (if_block) if_block.m(target, anchor);
-    			insert(target, if_block_anchor, anchor);
-
-    			if (!mounted) {
-    				dispose = [
-    					listen(input, "input", /*oninput*/ ctx[5]),
-    					listen(input, "*", /*_handler*/ ctx[10])
-    				];
-
-    				mounted = true;
-    			}
-    		},
-    		p(ctx, [dirty]) {
-    			if (dirty & /*label*/ 1) set_data(t0, /*label*/ ctx[0]);
-
-    			if (dirty & /*elementId*/ 4) {
-    				attr(label_1, "for", /*elementId*/ ctx[2]);
-    			}
-
-    			if (dirty & /*readonly*/ 2) {
-    				input.readOnly = /*readonly*/ ctx[1];
-    			}
-
-    			if (dirty & /*value*/ 16 && input.value !== /*value*/ ctx[4]) {
-    				input.value = /*value*/ ctx[4];
-    			}
-
-    			if (dirty & /*elementId*/ 4) {
-    				attr(input, "id", /*elementId*/ ctx[2]);
-    			}
-
-    			if (/*error*/ ctx[3]) {
-    				if (if_block) {
-    					if_block.p(ctx, dirty);
-    				} else {
-    					if_block = create_if_block(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-    		i: noop,
-    		o: noop,
-    		d(detaching) {
-    			if (detaching) detach(label_1);
-    			if (detaching) detach(t1);
-    			if (detaching) detach(input);
-    			if (detaching) detach(t2);
-    			if (if_block) if_block.d(detaching);
-    			if (detaching) detach(if_block_anchor);
-    			mounted = false;
-    			run_all(dispose);
-    		}
-    	};
-    }
-
-    function instance$2($$self, $$props, $$invalidate) {
-    	let accessor;
-    	let value;
-    	let error;
-    	let elementId;
-    	let { label } = $$props;
-    	let { form } = $$props;
-    	let { id } = $$props;
-    	let { keypath } = $$props;
-    	let { readonly } = $$props;
-    	const dispatcher = createEventDispatcher();
-    	const oninput = event => dispatcher('formChange', { id, keypath, value: event.target.value });
-
-    	function _handler(event) {
-    		bubble.call(this, $$self, event);
-    	}
-
-    	$$self.$$set = $$props => {
-    		if ('label' in $$props) $$invalidate(0, label = $$props.label);
-    		if ('form' in $$props) $$invalidate(6, form = $$props.form);
-    		if ('id' in $$props) $$invalidate(7, id = $$props.id);
-    		if ('keypath' in $$props) $$invalidate(8, keypath = $$props.keypath);
-    		if ('readonly' in $$props) $$invalidate(1, readonly = $$props.readonly);
-    	};
-
-    	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*id, keypath*/ 384) {
-    			$$invalidate(9, accessor = [id, ...keypath || []]);
-    		}
-
-    		if ($$self.$$.dirty & /*form, accessor*/ 576) {
-    			$$invalidate(4, value = get(form.data, accessor) || '');
-    		}
-
-    		if ($$self.$$.dirty & /*form, accessor*/ 576) {
-    			$$invalidate(3, error = get(form.errors, accessor));
-    		}
-
-    		if ($$self.$$.dirty & /*accessor*/ 512) {
-    			/**
-     * It is likely true that for each JSON:API resource + keypath, that you'll only have one
-     * element. Therefore, an ID based on those properties is likely unique to the page. If that
-     * is not true for your form, you'd need to do something extra here
-     * @type string
-     */
-    			$$invalidate(2, elementId = accessor.join('.'));
-    		}
-    	};
-
-    	return [
-    		label,
-    		readonly,
-    		elementId,
-    		error,
-    		value,
-    		oninput,
-    		form,
-    		id,
-    		keypath,
-    		accessor,
-    		_handler
-    	];
-    }
-
-    class InputText extends SvelteComponent {
-    	constructor(options) {
-    		super();
-
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
-    			label: 0,
-    			form: 6,
-    			id: 7,
-    			keypath: 8,
-    			readonly: 1
-    		});
-    	}
-    }
-
-    /* docs/CarForm.svelte generated by Svelte v3.43.0 */
-
-    function get_each_context(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[15] = list[i];
-    	return child_ctx;
-    }
-
-    function get_each_context_1(ctx, list, i) {
-    	const child_ctx = ctx.slice();
-    	child_ctx[18] = list[i];
-    	return child_ctx;
-    }
-
-    // (91:3) {#each (form.data[wheel.id]?.relationships?.positions?.data || []) as position}
-    function create_each_block_1(ctx) {
-    	let inputtext;
-    	let t0;
-    	let button;
-    	let t2;
-    	let br;
-    	let current;
-    	let mounted;
-    	let dispose;
-
-    	inputtext = new InputText({
-    			props: {
-    				label: "Position",
-    				id: /*position*/ ctx[18].id,
-    				keypath: ['attributes', 'name'],
-    				form: /*form*/ ctx[0],
-    				readonly: /*readonly*/ ctx[1]
-    			}
-    		});
-
-    	inputtext.$on("formChange", /*formChange_handler_2*/ ctx[10]);
-
-    	function click_handler() {
-    		return /*click_handler*/ ctx[11](/*position*/ ctx[18]);
-    	}
-
-    	return {
-    		c() {
-    			create_component(inputtext.$$.fragment);
-    			t0 = space();
-    			button = element("button");
-    			button.textContent = "Remove Position";
-    			t2 = space();
-    			br = element("br");
-    		},
-    		m(target, anchor) {
-    			mount_component(inputtext, target, anchor);
-    			insert(target, t0, anchor);
-    			insert(target, button, anchor);
-    			insert(target, t2, anchor);
-    			insert(target, br, anchor);
-    			current = true;
-
-    			if (!mounted) {
-    				dispose = listen(button, "click", click_handler);
-    				mounted = true;
-    			}
-    		},
-    		p(new_ctx, dirty) {
-    			ctx = new_ctx;
-    			const inputtext_changes = {};
-    			if (dirty & /*form, wheels*/ 5) inputtext_changes.id = /*position*/ ctx[18].id;
-    			if (dirty & /*form*/ 1) inputtext_changes.form = /*form*/ ctx[0];
-    			if (dirty & /*readonly*/ 2) inputtext_changes.readonly = /*readonly*/ ctx[1];
-    			inputtext.$set(inputtext_changes);
-    		},
-    		i(local) {
-    			if (current) return;
-    			transition_in(inputtext.$$.fragment, local);
-    			current = true;
-    		},
-    		o(local) {
-    			transition_out(inputtext.$$.fragment, local);
-    			current = false;
-    		},
-    		d(detaching) {
-    			destroy_component(inputtext, detaching);
-    			if (detaching) detach(t0);
-    			if (detaching) detach(button);
-    			if (detaching) detach(t2);
-    			if (detaching) detach(br);
-    			mounted = false;
-    			dispose();
-    		}
-    	};
-    }
-
-    // (80:1) {#each wheels as wheel}
-    function create_each_block(ctx) {
-    	let div;
-    	let inputtext;
-    	let t0;
-    	let br0;
-    	let t1;
-    	let t2;
-    	let br1;
-    	let t3;
-    	let button0;
-    	let t5;
-    	let br2;
-    	let t6;
-    	let button1;
-    	let current;
-    	let mounted;
-    	let dispose;
-
-    	inputtext = new InputText({
-    			props: {
-    				label: "Size",
-    				id: /*wheel*/ ctx[15].id,
-    				keypath: ['attributes', 'size'],
-    				form: /*form*/ ctx[0],
-    				readonly: /*readonly*/ ctx[1]
-    			}
-    		});
-
-    	inputtext.$on("formChange", /*formChange_handler_1*/ ctx[9]);
-    	let each_value_1 = /*form*/ ctx[0].data[/*wheel*/ ctx[15].id]?.relationships?.positions?.data || [];
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
-    	}
-
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
-
-    	function click_handler_1() {
-    		return /*click_handler_1*/ ctx[12](/*wheel*/ ctx[15]);
-    	}
-
-    	function click_handler_2() {
-    		return /*click_handler_2*/ ctx[13](/*wheel*/ ctx[15]);
-    	}
-
-    	return {
-    		c() {
-    			div = element("div");
-    			create_component(inputtext.$$.fragment);
-    			t0 = space();
-    			br0 = element("br");
-    			t1 = space();
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			t2 = space();
-    			br1 = element("br");
-    			t3 = space();
-    			button0 = element("button");
-    			button0.textContent = "Add Position";
-    			t5 = space();
-    			br2 = element("br");
-    			t6 = space();
-    			button1 = element("button");
-    			button1.textContent = "Remove Wheel";
-    			set_style(div, "border", "1px solid #000");
-    			set_style(div, "padding", "15px");
-    		},
-    		m(target, anchor) {
-    			insert(target, div, anchor);
-    			mount_component(inputtext, div, null);
-    			append(div, t0);
-    			append(div, br0);
-    			append(div, t1);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(div, null);
-    			}
-
-    			append(div, t2);
-    			append(div, br1);
-    			append(div, t3);
-    			append(div, button0);
-    			append(div, t5);
-    			append(div, br2);
-    			append(div, t6);
-    			append(div, button1);
-    			current = true;
-
-    			if (!mounted) {
-    				dispose = [
-    					listen(button0, "click", click_handler_1),
-    					listen(button1, "click", click_handler_2)
-    				];
-
-    				mounted = true;
-    			}
-    		},
-    		p(new_ctx, dirty) {
-    			ctx = new_ctx;
-    			const inputtext_changes = {};
-    			if (dirty & /*wheels*/ 4) inputtext_changes.id = /*wheel*/ ctx[15].id;
-    			if (dirty & /*form*/ 1) inputtext_changes.form = /*form*/ ctx[0];
-    			if (dirty & /*readonly*/ 2) inputtext_changes.readonly = /*readonly*/ ctx[1];
-    			inputtext.$set(inputtext_changes);
-
-    			if (dirty & /*removePosition, form, wheels, readonly*/ 71) {
-    				each_value_1 = /*form*/ ctx[0].data[/*wheel*/ ctx[15].id]?.relationships?.positions?.data || [];
-    				let i;
-
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block_1(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(div, t2);
-    					}
-    				}
-
-    				group_outros();
-
-    				for (i = each_value_1.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-
-    				check_outros();
-    			}
-    		},
-    		i(local) {
-    			if (current) return;
-    			transition_in(inputtext.$$.fragment, local);
-
-    			for (let i = 0; i < each_value_1.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
-    			current = true;
-    		},
-    		o(local) {
-    			transition_out(inputtext.$$.fragment, local);
-    			each_blocks = each_blocks.filter(Boolean);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
-    			current = false;
-    		},
-    		d(detaching) {
-    			if (detaching) detach(div);
-    			destroy_component(inputtext);
-    			destroy_each(each_blocks, detaching);
-    			mounted = false;
-    			run_all(dispose);
-    		}
-    	};
-    }
-
-    function create_fragment$1(ctx) {
-    	let inputtext;
-    	let t0;
-    	let div;
-    	let h3;
-    	let t2;
-    	let t3;
-    	let button;
-    	let current;
-    	let mounted;
-    	let dispose;
-
-    	inputtext = new InputText({
-    			props: {
-    				label: "Color",
-    				id: "001",
-    				keypath: ['attributes', 'color'],
-    				form: /*form*/ ctx[0],
-    				readonly: /*readonly*/ ctx[1]
-    			}
-    		});
-
-    	inputtext.$on("formChange", /*formChange_handler*/ ctx[8]);
-    	let each_value = /*wheels*/ ctx[2];
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
-    	}
-
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
-
-    	return {
-    		c() {
-    			create_component(inputtext.$$.fragment);
-    			t0 = space();
-    			div = element("div");
-    			h3 = element("h3");
-    			h3.textContent = "Wheels";
-    			t2 = space();
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			t3 = space();
-    			button = element("button");
-    			button.textContent = "Add Wheel";
-    			set_style(h3, "margin-top", "0");
-    			set_style(div, "background-color", "#ddd");
-    			set_style(div, "padding", "1em");
-    			set_style(div, "margin", "1em");
-    		},
-    		m(target, anchor) {
-    			mount_component(inputtext, target, anchor);
-    			insert(target, t0, anchor);
-    			insert(target, div, anchor);
-    			append(div, h3);
-    			append(div, t2);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(div, null);
-    			}
-
-    			append(div, t3);
-    			append(div, button);
-    			current = true;
-
-    			if (!mounted) {
-    				dispose = listen(button, "click", /*addWheel*/ ctx[3]);
-    				mounted = true;
-    			}
-    		},
-    		p(ctx, [dirty]) {
-    			const inputtext_changes = {};
-    			if (dirty & /*form*/ 1) inputtext_changes.form = /*form*/ ctx[0];
-    			if (dirty & /*readonly*/ 2) inputtext_changes.readonly = /*readonly*/ ctx[1];
-    			inputtext.$set(inputtext_changes);
-
-    			if (dirty & /*removeWheel, wheels, addPositionToWheel, form, removePosition, readonly*/ 119) {
-    				each_value = /*wheels*/ ctx[2];
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(div, t3);
-    					}
-    				}
-
-    				group_outros();
-
-    				for (i = each_value.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-
-    				check_outros();
-    			}
-    		},
-    		i(local) {
-    			if (current) return;
-    			transition_in(inputtext.$$.fragment, local);
-
-    			for (let i = 0; i < each_value.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
-    			current = true;
-    		},
-    		o(local) {
-    			transition_out(inputtext.$$.fragment, local);
-    			each_blocks = each_blocks.filter(Boolean);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
-    			current = false;
-    		},
-    		d(detaching) {
-    			destroy_component(inputtext, detaching);
-    			if (detaching) detach(t0);
-    			if (detaching) detach(div);
-    			destroy_each(each_blocks, detaching);
-    			mounted = false;
-    			dispose();
-    		}
-    	};
-    }
-
-    function instance$1($$self, $$props, $$invalidate) {
-    	let wheels;
-    	let { carId } = $$props;
-    	let { form } = $$props;
-    	let { readonly } = $$props;
-
-    	/**
-     * For any editable related resources, you'll need to create dispatchers to send the
-     * createResource/removeResource events. Here they are in the CarForm component, but
-     * it's likely that they'll be embedded in deeper components, in which case you'd
-     * simply forward the event along:
-     *   <WheelEditor on:createResource on:removeResource {data} ... />
-     */
-    	const dispatcher = createEventDispatcher();
-
-    	const addWheel = () => dispatcher('createResource', {
-    		relatedId: carId,
-    		relatedName: 'wheels',
-    		isArray: true,
-    		type: 'wheel'
-    	});
-
-    	/**
-     * If the resource you are removing has relationships, those related resources are
-     * not automatically removed (see the `removePosition` function below), so if you
-     * know that removing them is appropriate, you will need to do that by hand.
-     */
-    	const removeWheel = wheelId => {
-    		for (const { id, type } of form.data[wheelId]?.relationships?.positions?.data || []) {
-    			dispatcher('removeResource', { id, type });
-    		}
-
-    		dispatcher('removeResource', { id: wheelId, type: 'wheel' });
-    	};
-
-    	const addPositionToWheel = wheelId => dispatcher('createResource', {
-    		relatedId: wheelId,
-    		relatedName: 'positions',
-    		isArray: true,
-    		type: 'position'
-    	});
-
-    	const removePosition = positionId => dispatcher('removeResource', { id: positionId, type: 'position' });
-
-    	function formChange_handler(event) {
-    		bubble.call(this, $$self, event);
-    	}
-
-    	function formChange_handler_1(event) {
-    		bubble.call(this, $$self, event);
-    	}
-
-    	function formChange_handler_2(event) {
-    		bubble.call(this, $$self, event);
-    	}
-
-    	const click_handler = position => removePosition(position.id);
-    	const click_handler_1 = wheel => addPositionToWheel(wheel.id);
-    	const click_handler_2 = wheel => removeWheel(wheel.id);
-
-    	$$self.$$set = $$props => {
-    		if ('carId' in $$props) $$invalidate(7, carId = $$props.carId);
-    		if ('form' in $$props) $$invalidate(0, form = $$props.form);
-    		if ('readonly' in $$props) $$invalidate(1, readonly = $$props.readonly);
-    	};
-
-    	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*form, carId*/ 129) {
-    			/**
-     * For any related resources that we want to build components for, we will
-     * want to construct them reactively, so that adding/removing them (editing
-     * the form) will automatically update the view.
-     */
-    			$$invalidate(2, wheels = form.data[carId]?.relationships?.wheels?.data || []);
-    		}
-    	};
-
-    	return [
-    		form,
-    		readonly,
-    		wheels,
-    		addWheel,
-    		removeWheel,
-    		addPositionToWheel,
-    		removePosition,
-    		carId,
-    		formChange_handler,
-    		formChange_handler_1,
-    		formChange_handler_2,
-    		click_handler,
-    		click_handler_1,
-    		click_handler_2
-    	];
-    }
-
-    class CarForm extends SvelteComponent {
-    	constructor(options) {
-    		super();
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { carId: 7, form: 0, readonly: 1 });
-    	}
-    }
-
-    const fetchCarFromApi = async () => ({
-    	// Normal JSON:API response format:
-    	data: {
-    		id: '001',
-    		type: 'car',
-    		attributes: {
-    			color: 'red'
-    		}
-    	}
-    });
-
     var justDiff = {
-      diff: diff$1,
+      diff: diff,
       jsonPatchPathConverter: jsonPatchPathConverter,
     };
 
@@ -1192,7 +471,7 @@
       ]
     */
 
-    function diff$1(obj1, obj2, pathConverter) {
+    function diff(obj1, obj2, pathConverter) {
       if (!obj1 || typeof obj1 != 'object' || !obj2 || typeof obj2 != 'object') {
         throw new Error('both arguments must be objects or arrays');
       }
@@ -1274,105 +553,1405 @@
       return [''].concat(arrayPath).join('/');
     }
 
-    const { diff } = justDiff;
+    /* src/Form.svelte generated by Svelte v3.43.0 */
+    const get_default_slot_changes$1 = dirty => ({});
 
-    const copy = input => JSON.parse(JSON.stringify(input));
+    const get_default_slot_context$1 = ctx => ({
+    	create: /*create*/ ctx[1],
+    	remove: /*remove*/ ctx[0]
+    });
+
+    function create_fragment$4(ctx) {
+    	let current;
+    	const default_slot_template = /*#slots*/ ctx[6].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[5], get_default_slot_context$1);
+
+    	return {
+    		c() {
+    			if (default_slot) default_slot.c();
+    		},
+    		m(target, anchor) {
+    			if (default_slot) {
+    				default_slot.m(target, anchor);
+    			}
+
+    			current = true;
+    		},
+    		p(ctx, [dirty]) {
+    			if (default_slot) {
+    				if (default_slot.p && (!current || dirty & /*$$scope*/ 32)) {
+    					update_slot_base(
+    						default_slot,
+    						default_slot_template,
+    						ctx,
+    						/*$$scope*/ ctx[5],
+    						!current
+    						? get_all_dirty_from_scope(/*$$scope*/ ctx[5])
+    						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[5], dirty, get_default_slot_changes$1),
+    						get_default_slot_context$1
+    					);
+    				}
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(default_slot, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(default_slot, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			if (default_slot) default_slot.d(detaching);
+    		}
+    	};
+    }
+
+    function instance$4($$self, $$props, $$invalidate) {
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	const { diff } = justDiff;
+    	let { form } = $$props;
+    	let { startingCount = 0 } = $$props;
+    	let { prefix = 'GID' } = $$props;
+    	let count = startingCount;
+
+    	const makeDiff = (form, id) => {
+    		form.changes[id] = diff(form.original[id] || {}, form.data[id] || {});
+    		if (!form.changes[id].length) delete form.changes[id];
+    	};
+
+    	const dispatch = createEventDispatcher();
+
+    	const remove = ({ id, type }) => {
+    		delete form.data[id];
+    		makeDiff(form, id);
+
+    		for (let resourceId in form.data) {
+    			let touched;
+    			let resource = form.data[resourceId];
+
+    			for (let relName of Object.keys(resource.relationships || {})) {
+    				const rel = resource.relationships[relName];
+
+    				if (Array.isArray(rel.data)) {
+    					let filtered = rel.data.filter(r => r.id !== id || r.type !== type);
+
+    					if (filtered.length !== rel.data.length) {
+    						$$invalidate(2, form.data[resourceId].relationships[relName].data = filtered, form);
+    						if (!rel.data.length) delete form.data[resourceId].relationships[relName].data;
+    						touched = true;
+    					}
+    				} else if (rel?.data?.id === id && rel?.data?.type === type) {
+    					delete form.data[resourceId].relationships[relName].data;
+    					touched = true;
+    				}
+
+    				if (!rel.data) {
+    					delete form.data[resourceId].relationships[relName];
+    					touched = true;
+    				}
+    			}
+
+    			if (!Object.keys(resource.relationships || {}).length) {
+    				delete form.data[resourceId].relationships;
+    				touched = true;
+    			}
+
+    			if (touched) makeDiff(form, resourceId);
+    		}
+
+    		dispatch('remove', { id, type });
+    	};
+
+    	const create = ({ relId, relName, isArray, type }) => {
+    		let id = `${prefix}${++count}`;
+    		$$invalidate(2, form.data[id] = { type, id }, form);
+    		makeDiff(form, id);
+    		if (!form.data[relId].relationships) $$invalidate(2, form.data[relId].relationships = {}, form);
+    		if (!form.data[relId].relationships[relName]) $$invalidate(2, form.data[relId].relationships[relName] = {}, form);
+
+    		if (isArray) {
+    			let data = form.data[relId].relationships[relName].data || [];
+    			data.push({ type, id });
+    			$$invalidate(2, form.data[relId].relationships[relName].data = data, form);
+    		} else {
+    			$$invalidate(2, form.data[relId].relationships[relName].date = { type, id }, form);
+    		}
+
+    		makeDiff(form, relId);
+    		dispatch('create', { relId, relName, isArray, type });
+    	};
+
+    	$$self.$$set = $$props => {
+    		if ('form' in $$props) $$invalidate(2, form = $$props.form);
+    		if ('startingCount' in $$props) $$invalidate(3, startingCount = $$props.startingCount);
+    		if ('prefix' in $$props) $$invalidate(4, prefix = $$props.prefix);
+    		if ('$$scope' in $$props) $$invalidate(5, $$scope = $$props.$$scope);
+    	};
+
+    	return [remove, create, form, startingCount, prefix, $$scope, slots];
+    }
+
+    class Form extends SvelteComponent {
+    	constructor(options) {
+    		super();
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, { form: 2, startingCount: 3, prefix: 4 });
+    	}
+    }
+
+    function dlv(t,e,l,n,r){for(e=e.split?e.split("."):e,n=0;n<e.length;n++)t=t?t[e[n]]:r;return t===r?l:t}
+
+    /*
+
+    Note on escaping order, from RFC6901:
+
+    > Evaluation of each reference token begins by decoding any escaped
+    > character sequence.  This is performed by first transforming any
+    > occurrence of the sequence '~1' to '/', and then transforming any
+    > occurrence of the sequence '~0' to '~'.  By performing the
+    > substitutions in this order, an implementation avoids the error of
+    > turning '~01' first into '~1' and then into '/', which would be
+    > incorrect (the string '~01' correctly becomes '~1' after
+    > transformation).
+
+    */
 
     /**
-     * Create a JSON:API Form object, decoupling the original from the mutable data.
-     *
-     * @type {import('..').formFromResponse}
+     * Convert a JSON Pointer into a list of unescaped tokens, e.g. `/foo/bar~1biz` to `['foo','bar/biz']`.
+     * @type {import("../index").toTokens}
      */
-    const formFromResponse = response => {
+    const toTokens = function (path) {
+    	[ , ...path ] = path.split('/');
+    	let segments = [];
+    	for (let segment of path) {
+    		segments.push(segment.replaceAll('~1', '/').replaceAll('~0', '~'));
+    	}
+    	return segments
+    };
+
+    /**
+     * @param {String|Array<String>} input
+     * @returns {Array<String>}
+     */
+    const makeConsistent = input => input.split ? toTokens(input) : input;
+
+    /**
+     * Access a property by JSON Pointer, or by an array of property tokens.
+     * @type {import("../index").get}
+     */
+    const get = function (obj, path) {
+    	return dlv(obj, makeConsistent(path))
+    };
+
+    var justDebounceIt = debounce;
+
+    function debounce(fn, wait, callFirst) {
+      var timeout = null;
+      var debouncedFn = null;
+
+      var clear = function() {
+        if (timeout) {
+          clearTimeout(timeout);
+
+          debouncedFn = null;
+          timeout = null;
+        }
+      };
+
+      var flush = function() {
+        var call = debouncedFn;
+        clear();
+
+        if (call) {
+          call();
+        }
+      };
+
+      var debounceWrapper = function() {
+        if (!wait) {
+          return fn.apply(this, arguments);
+        }
+
+        var context = this;
+        var args = arguments;
+        var callNow = callFirst && !timeout;
+        clear();
+
+        debouncedFn = function() {
+          fn.apply(context, args);
+        };
+
+        timeout = setTimeout(function() {
+          timeout = null;
+
+          if (!callNow) {
+            var call = debouncedFn;
+            debouncedFn = null;
+
+            return call();
+          }
+        }, wait);
+
+        if (callNow) {
+          return debouncedFn();
+        }
+      };
+
+      debounceWrapper.cancel = clear;
+      debounceWrapper.flush = flush;
+
+      return debounceWrapper;
+    }
+
+    /* src/Field.svelte generated by Svelte v3.43.0 */
+    const get_default_slot_changes = dirty => ({ value: dirty & /*value*/ 2 });
+
+    const get_default_slot_context = ctx => ({
+    	value: /*value*/ ctx[1],
+    	set: /*set*/ ctx[0]
+    });
+
+    function create_fragment$3(ctx) {
+    	let current;
+    	const default_slot_template = /*#slots*/ ctx[8].default;
+    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[7], get_default_slot_context);
+
+    	return {
+    		c() {
+    			if (default_slot) default_slot.c();
+    		},
+    		m(target, anchor) {
+    			if (default_slot) {
+    				default_slot.m(target, anchor);
+    			}
+
+    			current = true;
+    		},
+    		p(ctx, [dirty]) {
+    			if (default_slot) {
+    				if (default_slot.p && (!current || dirty & /*$$scope, value*/ 130)) {
+    					update_slot_base(
+    						default_slot,
+    						default_slot_template,
+    						ctx,
+    						/*$$scope*/ ctx[7],
+    						!current
+    						? get_all_dirty_from_scope(/*$$scope*/ ctx[7])
+    						: get_slot_changes(default_slot_template, /*$$scope*/ ctx[7], dirty, get_default_slot_changes),
+    						get_default_slot_context
+    					);
+    				}
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(default_slot, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(default_slot, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			if (default_slot) default_slot.d(detaching);
+    		}
+    	};
+    }
+
+    function instance$3($$self, $$props, $$invalidate) {
+    	let tokens;
+    	let value;
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	const { diff } = justDiff;
+    	let { form } = $$props;
+    	let { id } = $$props;
+    	let { keypath } = $$props;
+    	let { debounceMillis } = $$props;
+
+    	/*
+    Because the diff calculation is expensive, we debounce so that e.g. entering text
+    rapidly won't cause a sudden pile of blocking diff calculations to slow the UI.
+     */
+    	const dispatch = createEventDispatcher();
+
+    	const change = justDebounceIt(
+    		updatedValue => {
+    			$$invalidate(2, form.changes[id] = diff(form.original[id] || {}, form.data[id] || {}), form);
+    			if (!form.changes[id].length) delete form.changes[id];
+    			dispatch('change', { id, keypath: tokens, value: updatedValue });
+    		},
+    		debounceMillis || 15,
+    		true
+    	);
+
+    	const set = v => {
+    		let [k1, k2, k3, k4, k5, k6] = tokens;
+    		let l = tokens.length;
+
+    		/*
+    The Svelte compiler looks for reassignment as the method to detect whether a
+    function inside a component is modifying a bound value. Because of this, the
+    reassignment process can't use the normal shortcut found in e.g. @lukeed/dset,
+    thus the following method which is limited in depth.
+     */
+    		form.data[id] ?? $$invalidate(2, form.data[id] = {}, form);
+
+    		l > 0 && (form.data[id][k1] ?? $$invalidate(2, form.data[id][k1] = {}, form));
+    		l > 1 && (form.data[id][k1][k2] ?? $$invalidate(2, form.data[id][k1][k2] = {}, form));
+    		l > 2 && (form.data[id][k1][k2][k3] ?? $$invalidate(2, form.data[id][k1][k2][k3] = {}, form));
+    		l > 3 && (form.data[id][k1][k2][k3][k4] ?? $$invalidate(2, form.data[id][k1][k2][k3][k4] = {}, form));
+    		l > 4 && (form.data[id][k1][k2][k3][k4][k5] ?? $$invalidate(2, form.data[id][k1][k2][k3][k4][k5] = {}, form));
+    		l > 5 && (form.data[id][k1][k2][k3][k4][k5][k6] ?? $$invalidate(2, form.data[id][k1][k2][k3][k4][k5][k6] = {}, form));
+    		if (l === 1) $$invalidate(2, form.data[id][k1] = v, form);
+    		if (l === 2) $$invalidate(2, form.data[id][k1][k2] = v, form);
+    		if (l === 3) $$invalidate(2, form.data[id][k1][k2][k3] = v, form);
+    		if (l === 4) $$invalidate(2, form.data[id][k1][k2][k3][k4] = v, form);
+    		if (l === 5) $$invalidate(2, form.data[id][k1][k2][k3][k4][k5] = v, form);
+    		if (l === 6) $$invalidate(2, form.data[id][k1][k2][k3][k4][k5][k6] = v, form);
+    		change(v);
+    	};
+
+    	$$self.$$set = $$props => {
+    		if ('form' in $$props) $$invalidate(2, form = $$props.form);
+    		if ('id' in $$props) $$invalidate(3, id = $$props.id);
+    		if ('keypath' in $$props) $$invalidate(4, keypath = $$props.keypath);
+    		if ('debounceMillis' in $$props) $$invalidate(5, debounceMillis = $$props.debounceMillis);
+    		if ('$$scope' in $$props) $$invalidate(7, $$scope = $$props.$$scope);
+    	};
+
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*keypath*/ 16) {
+    			$$invalidate(6, tokens = keypath.split ? toTokens(keypath) : keypath);
+    		}
+
+    		if ($$self.$$.dirty & /*form, id, tokens*/ 76) {
+    			$$invalidate(1, value = get(form.data[id], tokens) || '');
+    		}
+    	};
+
+    	return [set, value, form, id, keypath, debounceMillis, tokens, $$scope, slots];
+    }
+
+    class Field extends SvelteComponent {
+    	constructor(options) {
+    		super();
+
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {
+    			form: 2,
+    			id: 3,
+    			keypath: 4,
+    			debounceMillis: 5,
+    			set: 0
+    		});
+    	}
+
+    	get set() {
+    		return this.$$.ctx[0];
+    	}
+    }
+
+    /* docs/Input.svelte generated by Svelte v3.43.0 */
+
+    function create_default_slot$1(ctx) {
+    	let input;
+    	let input_value_value;
+    	let mounted;
+    	let dispose;
+
+    	function input_handler(...args) {
+    		return /*input_handler*/ ctx[10](/*set*/ ctx[13], ...args);
+    	}
+
+    	return {
+    		c() {
+    			input = element("input");
+    			attr(input, "type", /*type*/ ctx[1]);
+    			input.readOnly = /*readonly*/ ctx[5];
+    			input.value = input_value_value = /*value*/ ctx[14];
+    			attr(input, "id", /*elementId*/ ctx[6]);
+    		},
+    		m(target, anchor) {
+    			insert(target, input, anchor);
+
+    			if (!mounted) {
+    				dispose = [
+    					listen(input, "input", input_handler),
+    					listen(input, "*", /*_handler*/ ctx[9])
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p(new_ctx, dirty) {
+    			ctx = new_ctx;
+
+    			if (dirty & /*type*/ 2) {
+    				attr(input, "type", /*type*/ ctx[1]);
+    			}
+
+    			if (dirty & /*readonly*/ 32) {
+    				input.readOnly = /*readonly*/ ctx[5];
+    			}
+
+    			if (dirty & /*value*/ 16384 && input_value_value !== (input_value_value = /*value*/ ctx[14]) && input.value !== input_value_value) {
+    				input.value = input_value_value;
+    			}
+
+    			if (dirty & /*elementId*/ 64) {
+    				attr(input, "id", /*elementId*/ ctx[6]);
+    			}
+    		},
+    		d(detaching) {
+    			if (detaching) detach(input);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+    }
+
+    // (54:0) {#if error}
+    function create_if_block(ctx) {
+    	let div;
+    	let t;
+
+    	return {
+    		c() {
+    			div = element("div");
+    			t = text(/*error*/ ctx[7]);
+    			attr(div, "class", "invalid-feedback");
+    		},
+    		m(target, anchor) {
+    			insert(target, div, anchor);
+    			append(div, t);
+    		},
+    		p(ctx, dirty) {
+    			if (dirty & /*error*/ 128) set_data(t, /*error*/ ctx[7]);
+    		},
+    		d(detaching) {
+    			if (detaching) detach(div);
+    		}
+    	};
+    }
+
+    function create_fragment$2(ctx) {
+    	let label_1;
+    	let t0;
+    	let t1;
+    	let field;
+    	let updating_form;
+    	let t2;
+    	let if_block_anchor;
+    	let current;
+
+    	function field_form_binding(value) {
+    		/*field_form_binding*/ ctx[11](value);
+    	}
+
+    	let field_props = {
+    		id: /*id*/ ctx[3],
+    		keypath: /*keypath*/ ctx[4],
+    		$$slots: {
+    			default: [
+    				create_default_slot$1,
+    				({ set, value }) => ({ 13: set, 14: value }),
+    				({ set, value }) => (set ? 8192 : 0) | (value ? 16384 : 0)
+    			]
+    		},
+    		$$scope: { ctx }
+    	};
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		field_props.form = /*form*/ ctx[0];
+    	}
+
+    	field = new Field({ props: field_props });
+    	binding_callbacks.push(() => bind(field, 'form', field_form_binding));
+    	field.$on("change", /*change_handler*/ ctx[12]);
+    	let if_block = /*error*/ ctx[7] && create_if_block(ctx);
+
+    	return {
+    		c() {
+    			label_1 = element("label");
+    			t0 = text(/*label*/ ctx[2]);
+    			t1 = space();
+    			create_component(field.$$.fragment);
+    			t2 = space();
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    			attr(label_1, "for", /*elementId*/ ctx[6]);
+    		},
+    		m(target, anchor) {
+    			insert(target, label_1, anchor);
+    			append(label_1, t0);
+    			insert(target, t1, anchor);
+    			mount_component(field, target, anchor);
+    			insert(target, t2, anchor);
+    			if (if_block) if_block.m(target, anchor);
+    			insert(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p(ctx, [dirty]) {
+    			if (!current || dirty & /*label*/ 4) set_data(t0, /*label*/ ctx[2]);
+
+    			if (!current || dirty & /*elementId*/ 64) {
+    				attr(label_1, "for", /*elementId*/ ctx[6]);
+    			}
+
+    			const field_changes = {};
+    			if (dirty & /*id*/ 8) field_changes.id = /*id*/ ctx[3];
+    			if (dirty & /*keypath*/ 16) field_changes.keypath = /*keypath*/ ctx[4];
+
+    			if (dirty & /*$$scope, type, readonly, value, elementId*/ 49250) {
+    				field_changes.$$scope = { dirty, ctx };
+    			}
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				field_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
+    			field.$set(field_changes);
+
+    			if (/*error*/ ctx[7]) {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+    				} else {
+    					if_block = create_if_block(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(field.$$.fragment, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(field.$$.fragment, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			if (detaching) detach(label_1);
+    			if (detaching) detach(t1);
+    			destroy_component(field, detaching);
+    			if (detaching) detach(t2);
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach(if_block_anchor);
+    		}
+    	};
+    }
+
+    function instance$2($$self, $$props, $$invalidate) {
+    	let accessor;
+    	let error;
+    	let elementId;
+    	let { type = 'text' } = $$props;
+    	let { label } = $$props;
+    	let { form } = $$props;
+    	let { id } = $$props;
+    	let { keypath } = $$props;
+    	let { readonly } = $$props;
+
+    	function _handler(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	const input_handler = (set, event) => set(event.target.value);
+
+    	function field_form_binding(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	function change_handler(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	$$self.$$set = $$props => {
+    		if ('type' in $$props) $$invalidate(1, type = $$props.type);
+    		if ('label' in $$props) $$invalidate(2, label = $$props.label);
+    		if ('form' in $$props) $$invalidate(0, form = $$props.form);
+    		if ('id' in $$props) $$invalidate(3, id = $$props.id);
+    		if ('keypath' in $$props) $$invalidate(4, keypath = $$props.keypath);
+    		if ('readonly' in $$props) $$invalidate(5, readonly = $$props.readonly);
+    	};
+
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*id, keypath*/ 24) {
+    			$$invalidate(8, accessor = [id, ...keypath || []]);
+    		}
+
+    		if ($$self.$$.dirty & /*form, accessor*/ 257) {
+    			$$invalidate(7, error = get(form.errors, accessor));
+    		}
+
+    		if ($$self.$$.dirty & /*accessor*/ 256) {
+    			/**
+     * It is likely true that for each JSON:API resource + keypath, that you'll only have one
+     * element. Therefore, an ID based on those properties is likely unique to the page. If that
+     * is not true for your form, you'd need to do something extra here
+     * @type string
+     */
+    			$$invalidate(6, elementId = accessor.join('.'));
+    		}
+    	};
+
+    	return [
+    		form,
+    		type,
+    		label,
+    		id,
+    		keypath,
+    		readonly,
+    		elementId,
+    		error,
+    		accessor,
+    		_handler,
+    		input_handler,
+    		field_form_binding,
+    		change_handler
+    	];
+    }
+
+    class Input extends SvelteComponent {
+    	constructor(options) {
+    		super();
+
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {
+    			type: 1,
+    			label: 2,
+    			form: 0,
+    			id: 3,
+    			keypath: 4,
+    			readonly: 5
+    		});
+    	}
+    }
+
+    /* docs/CarForm.svelte generated by Svelte v3.43.0 */
+
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[21] = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[24] = list[i];
+    	return child_ctx;
+    }
+
+    // (73:4) {#each (form.data[wheel.id]?.relationships?.positions?.data || []) as position}
+    function create_each_block_1(ctx) {
+    	let input;
+    	let updating_form;
+    	let t0;
+    	let button;
+    	let t2;
+    	let br;
+    	let current;
+    	let mounted;
+    	let dispose;
+
+    	function input_form_binding_2(value) {
+    		/*input_form_binding_2*/ ctx[10](value);
+    	}
+
+    	let input_props = {
+    		label: "Position",
+    		id: /*position*/ ctx[24].id,
+    		keypath: ['attributes', 'name'],
+    		readonly: /*readonly*/ ctx[2]
+    	};
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		input_props.form = /*form*/ ctx[0];
+    	}
+
+    	input = new Input({ props: input_props });
+    	binding_callbacks.push(() => bind(input, 'form', input_form_binding_2));
+    	input.$on("change", /*change_handler_2*/ ctx[11]);
+
+    	function click_handler() {
+    		return /*click_handler*/ ctx[12](/*remove*/ ctx[19], /*position*/ ctx[24]);
+    	}
+
+    	return {
+    		c() {
+    			create_component(input.$$.fragment);
+    			t0 = space();
+    			button = element("button");
+    			button.textContent = "Remove Position";
+    			t2 = space();
+    			br = element("br");
+    		},
+    		m(target, anchor) {
+    			mount_component(input, target, anchor);
+    			insert(target, t0, anchor);
+    			insert(target, button, anchor);
+    			insert(target, t2, anchor);
+    			insert(target, br, anchor);
+    			current = true;
+
+    			if (!mounted) {
+    				dispose = listen(button, "click", click_handler);
+    				mounted = true;
+    			}
+    		},
+    		p(new_ctx, dirty) {
+    			ctx = new_ctx;
+    			const input_changes = {};
+    			if (dirty & /*form, wheels*/ 9) input_changes.id = /*position*/ ctx[24].id;
+    			if (dirty & /*readonly*/ 4) input_changes.readonly = /*readonly*/ ctx[2];
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				input_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
+    			input.$set(input_changes);
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(input.$$.fragment, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(input.$$.fragment, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			destroy_component(input, detaching);
+    			if (detaching) detach(t0);
+    			if (detaching) detach(button);
+    			if (detaching) detach(t2);
+    			if (detaching) detach(br);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+    }
+
+    // (62:2) {#each wheels as wheel}
+    function create_each_block(ctx) {
+    	let div;
+    	let input;
+    	let updating_form;
+    	let t0;
+    	let br0;
+    	let t1;
+    	let t2;
+    	let br1;
+    	let t3;
+    	let button0;
+    	let t5;
+    	let br2;
+    	let t6;
+    	let button1;
+    	let current;
+    	let mounted;
+    	let dispose;
+
+    	function input_form_binding_1(value) {
+    		/*input_form_binding_1*/ ctx[8](value);
+    	}
+
+    	let input_props = {
+    		label: "Size",
+    		id: /*wheel*/ ctx[21].id,
+    		keypath: ['attributes', 'size'],
+    		readonly: /*readonly*/ ctx[2]
+    	};
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		input_props.form = /*form*/ ctx[0];
+    	}
+
+    	input = new Input({ props: input_props });
+    	binding_callbacks.push(() => bind(input, 'form', input_form_binding_1));
+    	input.$on("change", /*change_handler_1*/ ctx[9]);
+    	let each_value_1 = /*form*/ ctx[0].data[/*wheel*/ ctx[21].id]?.relationships?.positions?.data || [];
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		each_blocks[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	function click_handler_1() {
+    		return /*click_handler_1*/ ctx[13](/*create*/ ctx[20], /*wheel*/ ctx[21]);
+    	}
+
+    	function click_handler_2() {
+    		return /*click_handler_2*/ ctx[14](/*remove*/ ctx[19], /*wheel*/ ctx[21]);
+    	}
+
+    	return {
+    		c() {
+    			div = element("div");
+    			create_component(input.$$.fragment);
+    			t0 = space();
+    			br0 = element("br");
+    			t1 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			t2 = space();
+    			br1 = element("br");
+    			t3 = space();
+    			button0 = element("button");
+    			button0.textContent = "Add Position";
+    			t5 = space();
+    			br2 = element("br");
+    			t6 = space();
+    			button1 = element("button");
+    			button1.textContent = "Remove Wheel";
+    			set_style(div, "border", "1px solid #000");
+    			set_style(div, "padding", "15px");
+    		},
+    		m(target, anchor) {
+    			insert(target, div, anchor);
+    			mount_component(input, div, null);
+    			append(div, t0);
+    			append(div, br0);
+    			append(div, t1);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(div, null);
+    			}
+
+    			append(div, t2);
+    			append(div, br1);
+    			append(div, t3);
+    			append(div, button0);
+    			append(div, t5);
+    			append(div, br2);
+    			append(div, t6);
+    			append(div, button1);
+    			current = true;
+
+    			if (!mounted) {
+    				dispose = [
+    					listen(button0, "click", click_handler_1),
+    					listen(button1, "click", click_handler_2)
+    				];
+
+    				mounted = true;
+    			}
+    		},
+    		p(new_ctx, dirty) {
+    			ctx = new_ctx;
+    			const input_changes = {};
+    			if (dirty & /*wheels*/ 8) input_changes.id = /*wheel*/ ctx[21].id;
+    			if (dirty & /*readonly*/ 4) input_changes.readonly = /*readonly*/ ctx[2];
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				input_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
+    			input.$set(input_changes);
+
+    			if (dirty & /*form, wheels, readonly*/ 13) {
+    				each_value_1 = /*form*/ ctx[0].data[/*wheel*/ ctx[21].id]?.relationships?.positions?.data || [];
+    				let i;
+
+    				for (i = 0; i < each_value_1.length; i += 1) {
+    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block_1(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(div, t2);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value_1.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(input.$$.fragment, local);
+
+    			for (let i = 0; i < each_value_1.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(input.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+    		d(detaching) {
+    			if (detaching) detach(div);
+    			destroy_component(input);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			run_all(dispose);
+    		}
+    	};
+    }
+
+    // (47:0) <Form bind:form let:remove let:create on:create on:remove>
+    function create_default_slot(ctx) {
+    	let input;
+    	let updating_form;
+    	let t0;
+    	let div;
+    	let h3;
+    	let t2;
+    	let t3;
+    	let button;
+    	let current;
+    	let mounted;
+    	let dispose;
+
+    	function input_form_binding(value) {
+    		/*input_form_binding*/ ctx[6](value);
+    	}
+
+    	let input_props = {
+    		label: "Color",
+    		id: "001",
+    		keypath: ['attributes', 'color'],
+    		readonly: /*readonly*/ ctx[2]
+    	};
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		input_props.form = /*form*/ ctx[0];
+    	}
+
+    	input = new Input({ props: input_props });
+    	binding_callbacks.push(() => bind(input, 'form', input_form_binding));
+    	input.$on("change", /*change_handler*/ ctx[7]);
+    	let each_value = /*wheels*/ ctx[3];
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	function click_handler_3() {
+    		return /*click_handler_3*/ ctx[15](/*create*/ ctx[20]);
+    	}
+
+    	return {
+    		c() {
+    			create_component(input.$$.fragment);
+    			t0 = space();
+    			div = element("div");
+    			h3 = element("h3");
+    			h3.textContent = "Wheels";
+    			t2 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			t3 = space();
+    			button = element("button");
+    			button.textContent = "Add Wheel";
+    			set_style(h3, "margin-top", "0");
+    			set_style(div, "background-color", "#ddd");
+    			set_style(div, "padding", "1em");
+    			set_style(div, "margin", "1em");
+    		},
+    		m(target, anchor) {
+    			mount_component(input, target, anchor);
+    			insert(target, t0, anchor);
+    			insert(target, div, anchor);
+    			append(div, h3);
+    			append(div, t2);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(div, null);
+    			}
+
+    			append(div, t3);
+    			append(div, button);
+    			current = true;
+
+    			if (!mounted) {
+    				dispose = listen(button, "click", click_handler_3);
+    				mounted = true;
+    			}
+    		},
+    		p(new_ctx, dirty) {
+    			ctx = new_ctx;
+    			const input_changes = {};
+    			if (dirty & /*readonly*/ 4) input_changes.readonly = /*readonly*/ ctx[2];
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				input_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
+    			input.$set(input_changes);
+
+    			if (dirty & /*removeWheel, wheels, addPositionToWheel, form, readonly*/ 61) {
+    				each_value = /*wheels*/ ctx[3];
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(div, t3);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(input.$$.fragment, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(input.$$.fragment, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+    		d(detaching) {
+    			destroy_component(input, detaching);
+    			if (detaching) detach(t0);
+    			if (detaching) detach(div);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+    }
+
+    function create_fragment$1(ctx) {
+    	let form_1;
+    	let updating_form;
+    	let current;
+
+    	function form_1_form_binding(value) {
+    		/*form_1_form_binding*/ ctx[16](value);
+    	}
+
+    	let form_1_props = {
+    		$$slots: {
+    			default: [
+    				create_default_slot,
+    				({ remove, create }) => ({ 19: remove, 20: create }),
+    				({ remove, create }) => (remove ? 524288 : 0) | (create ? 1048576 : 0)
+    			]
+    		},
+    		$$scope: { ctx }
+    	};
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		form_1_props.form = /*form*/ ctx[0];
+    	}
+
+    	form_1 = new Form({ props: form_1_props });
+    	binding_callbacks.push(() => bind(form_1, 'form', form_1_form_binding));
+    	form_1.$on("create", /*create_handler*/ ctx[17]);
+    	form_1.$on("remove", /*remove_handler*/ ctx[18]);
+
+    	return {
+    		c() {
+    			create_component(form_1.$$.fragment);
+    		},
+    		m(target, anchor) {
+    			mount_component(form_1, target, anchor);
+    			current = true;
+    		},
+    		p(ctx, [dirty]) {
+    			const form_1_changes = {};
+
+    			if (dirty & /*$$scope, carId, wheels, form, readonly*/ 134217743) {
+    				form_1_changes.$$scope = { dirty, ctx };
+    			}
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				form_1_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
+    			form_1.$set(form_1_changes);
+    		},
+    		i(local) {
+    			if (current) return;
+    			transition_in(form_1.$$.fragment, local);
+    			current = true;
+    		},
+    		o(local) {
+    			transition_out(form_1.$$.fragment, local);
+    			current = false;
+    		},
+    		d(detaching) {
+    			destroy_component(form_1, detaching);
+    		}
+    	};
+    }
+
+    function instance$1($$self, $$props, $$invalidate) {
+    	let wheels;
+    	let { carId } = $$props;
+    	let { form } = $$props;
+    	let { readonly } = $$props;
+
+    	// To add a resource, call the slot's `create` function. You could call it directly
+    	// from your component, or if that gets unwieldy you can make a function and call
+    	// it like this.
+    	const addPositionToWheel = (create, wheelId) => create({
+    		relId: wheelId,
+    		relName: 'positions',
+    		isArray: true,
+    		type: 'position'
+    	});
+
+    	// If the resource you are removing has relationships, those related resources are
+    	// not automatically removed, so if you know that removing them is appropriate you will
+    	// need to do that by hand, like this.
+    	const removeWheel = (remove, wheelId) => {
+    		for (const { id, type } of form.data[wheelId]?.relationships?.positions?.data || []) {
+    			remove({ id, type });
+    		}
+
+    		remove({ id: wheelId, type: 'wheel' });
+    	};
+
+    	function input_form_binding(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	function change_handler(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	function input_form_binding_1(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	function change_handler_1(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	function input_form_binding_2(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	function change_handler_2(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	const click_handler = (remove, position) => remove(position);
+    	const click_handler_1 = (create, wheel) => addPositionToWheel(create, wheel.id);
+    	const click_handler_2 = (remove, wheel) => removeWheel(remove, wheel.id);
+
+    	const click_handler_3 = create => create({
+    		relId: carId,
+    		relName: 'wheels',
+    		isArray: true,
+    		type: 'wheel'
+    	});
+
+    	function form_1_form_binding(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	function create_handler(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	function remove_handler(event) {
+    		bubble.call(this, $$self, event);
+    	}
+
+    	$$self.$$set = $$props => {
+    		if ('carId' in $$props) $$invalidate(1, carId = $$props.carId);
+    		if ('form' in $$props) $$invalidate(0, form = $$props.form);
+    		if ('readonly' in $$props) $$invalidate(2, readonly = $$props.readonly);
+    	};
+
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*form, carId*/ 3) {
+    			// For any related resources that we want to build components for, we will
+    			// want to construct them reactively, so that adding/removing them (editing
+    			// the form) will automatically update the view.
+    			$$invalidate(3, wheels = form.data[carId]?.relationships?.wheels?.data || []);
+    		}
+    	};
+
+    	return [
+    		form,
+    		carId,
+    		readonly,
+    		wheels,
+    		addPositionToWheel,
+    		removeWheel,
+    		input_form_binding,
+    		change_handler,
+    		input_form_binding_1,
+    		change_handler_1,
+    		input_form_binding_2,
+    		change_handler_2,
+    		click_handler,
+    		click_handler_1,
+    		click_handler_2,
+    		click_handler_3,
+    		form_1_form_binding,
+    		create_handler,
+    		remove_handler
+    	];
+    }
+
+    class CarForm extends SvelteComponent {
+    	constructor(options) {
+    		super();
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { carId: 1, form: 0, readonly: 2 });
+    	}
+    }
+
+    function klona(val) {
+    	var k, out, tmp;
+
+    	if (Array.isArray(val)) {
+    		out = Array(k=val.length);
+    		while (k--) out[k] = (tmp=val[k]) && typeof tmp === 'object' ? klona(tmp) : tmp;
+    		return out;
+    	}
+
+    	if (Object.prototype.toString.call(val) === '[object Object]') {
+    		out = {}; // null
+    		for (k in val) {
+    			if (k === '__proto__') {
+    				Object.defineProperty(out, k, {
+    					value: klona(val[k]),
+    					configurable: true,
+    					enumerable: true,
+    					writable: true,
+    				});
+    			} else {
+    				out[k] = (tmp=val[k]) && typeof tmp === 'object' ? klona(tmp) : tmp;
+    			}
+    		}
+    		return out;
+    	}
+
+    	return val;
+    }
+
+    /**
+     * Create a JsonApiForm object, decoupling the original from the mutable data.
+     *
+     * @type {import('..').responseToForm}
+     */
+    const responseToForm = response => {
     	const data = {};
     	const original = {};
     	data[response.data.id] = response.data;
-    	original[response.data.id] = copy(response.data);
+    	original[response.data.id] = klona(response.data);
     	if (response.included) {
     		for (const resource of response.included) {
     			data[resource.id] = resource;
-    			original[resource.id] = copy(resource);
+    			original[resource.id] = klona(resource);
     		}
     	}
-    	return { data, original, changes: {} }
+    	return { data, original, changes: {}, errors: {} }
     };
 
-    /**
-     * Handle formChange events emitted by JSON:API Forms by updating the form and calculating changes.
-     *
-     * @type {import('..').onFormChange}
-     */
-    const onFormChange = (form, { detail: { id, keypath, value } }) => {
-    	const changeKey = [ 'data', id, ...keypath ];
-    	if (value !== undefined) {
-    		set(form, changeKey, value);
-    	} else {
-    		del(form, changeKey);
-    	}
-    	form.changes[id] = diff(form.original[id] || {}, form.data[id] || {});
-    	return form
-    };
-
-    /**
-     * Given a `resourceCreate` event, update the JSON:Api Form with a resource containing an auto-generated
-     * identifier, and adds the form relationship to the defined path.
-     *
-     * @type {import('..').resourceCreator}
-     */
-    const resourceCreator = (startingCount = 0) => {
-    	let count = startingCount;
-    	return (form, { detail: { relatedId, relatedName, isArray, type } }) => {
-    		let id = `GID${++count}`;
-    		form.data[id] = { type, id };
-    		let relatedKeypath = [ relatedId, 'relationships', relatedName, 'data' ];
-    		set(
-    			form.data,
-    			relatedKeypath,
-    			isArray
-    				? [ ...(get(form.data, relatedKeypath) || []), { type, id } ]
-    				: { type, id }
-    		);
-    		form.changes[id] = diff({}, form.data[id]);
-    		if (!form.changes[id].length) delete form.changes[id];
-    		return form
-    	}
-    };
-
-    /**
-     * Given a `resourceRemove` event, update the JSON:Api Form by deleting that resource, and removing from
-     * all relationships across all resources.
-     *
-     * @type {import('..').removeResource}
-     */
-    function removeResource (form, { detail: { id, type } }) {
-    	delete form.data[id];
-    	form.changes[id] = diff(form.original[id] || {}, form.data[id] || {});
-
-    	for (let resourceId in form.data) {
-    		let resource = form.data[resourceId];
-    		for (let relationshipName of Object.keys(resource.relationships || {})) {
-    			const relationship = resource.relationships[relationshipName];
-    			if (Array.isArray(relationship.data)) {
-    				relationship.data = relationship.data.filter(r => r.id !== id || r.type !== type);
-    				if (!relationship.data.length) delete relationship.data;
-    			} else if (relationship?.data?.id === id && relationship?.data?.type === type) {
-    				delete relationship.data;
+    // Here we are mocking a fetch from a JSON:API compliant server, which
+    // returns a JSON object in the normal structure. To turn that into
+    // a JsonApiForm, pass the whole response (after parsing the JSON)
+    // to the `responseToForm` function.
+    const fetchCarFromMockApi = async () => responseToForm({
+    	data: {
+    		id: '001',
+    		type: 'car',
+    		attributes: {
+    			color: 'red'
+    		},
+    		relationships: {
+    			wheels: {
+    				data: [
+    					{
+    						id: '002',
+    						type: 'wheel'
+    					}
+    				]
     			}
-    			if (!relationship.data) delete resource.relationships[relationshipName];
     		}
-    		if (!Object.keys(resource.relationships || {}).length) delete resource.relationships;
-
-    		// Note: this could probably be optimized, to only check for diffs on the items that had
-    		// their relationships changed.
-    		form.changes[resourceId] = diff(form.original[resourceId] || {}, form.data[resourceId] || {});
-    	}
-
-    	for (let id in form.changes) {
-    		if (!form.changes[id].length) delete form.changes[id];
-    	}
-
-    	return form
-    }
+    	},
+    	included: [
+    		{
+    			id: '002',
+    			type: 'wheel',
+    			attributes: {
+    				size: 'big'
+    			}
+    		}
+    	]
+    });
 
     /* docs/App.svelte generated by Svelte v3.43.0 */
 
@@ -1392,6 +1971,7 @@
     	let h2;
     	let t15;
     	let carform;
+    	let updating_form;
     	let t16;
     	let p2;
     	let t18;
@@ -1402,25 +1982,37 @@
     	let hr2;
     	let t21;
     	let p3;
-    	let t25;
-    	let pre;
-    	let t26_value = JSON.stringify(/*form*/ ctx[0], undefined, 4) + "";
-    	let t26;
+    	let t27;
+    	let pre0;
+    	let t28_value = JSON.stringify(/*lastChange*/ ctx[1], undefined, 4) + "";
+    	let t28;
+    	let t29;
+    	let hr3;
+    	let t30;
+    	let p4;
+    	let t34;
+    	let pre1;
+    	let t35_value = JSON.stringify(/*form*/ ctx[0], undefined, 4) + "";
+    	let t35;
     	let current;
     	let mounted;
     	let dispose;
 
-    	carform = new CarForm({
-    			props: {
-    				carId: "001",
-    				form: /*form*/ ctx[0],
-    				readonly
-    			}
-    		});
+    	function carform_form_binding(value) {
+    		/*carform_form_binding*/ ctx[4](value);
+    	}
 
-    	carform.$on("formChange", /*formChange_handler*/ ctx[4]);
-    	carform.$on("createResource", /*createResource_handler*/ ctx[5]);
-    	carform.$on("removeResource", /*removeResource_handler*/ ctx[6]);
+    	let carform_props = { carId: "001", readonly };
+
+    	if (/*form*/ ctx[0] !== void 0) {
+    		carform_props.form = /*form*/ ctx[0];
+    	}
+
+    	carform = new CarForm({ props: carform_props });
+    	binding_callbacks.push(() => bind(carform, 'form', carform_form_binding));
+    	carform.$on("change", /*change_handler*/ ctx[5]);
+    	carform.$on("create", /*create_handler*/ ctx[6]);
+    	carform.$on("remove", /*remove_handler*/ ctx[7]);
 
     	return {
     		c() {
@@ -1460,11 +2052,24 @@
     			hr2 = element("hr");
     			t21 = space();
     			p3 = element("p");
-    			p3.innerHTML = `Here you can see what the <code>form</code> object looks like, as you modify it.`;
-    			t25 = space();
-    			pre = element("pre");
-    			t26 = text(t26_value);
-    			button1.disabled = button1_disabled_value = !/*hasChanges*/ ctx[1];
+
+    			p3.innerHTML = `The <code>Form</code> and <code>Field</code> components emit events, which you
+	could use to drive other business logic. The demo isn&#39;t using them for anything,
+	but you can see what they looks like here after you&#39;ve changed something, or
+	created or removed a resource.`;
+
+    			t27 = space();
+    			pre0 = element("pre");
+    			t28 = text(t28_value);
+    			t29 = space();
+    			hr3 = element("hr");
+    			t30 = space();
+    			p4 = element("p");
+    			p4.innerHTML = `Here you can see what the <code>form</code> object looks like, as you modify it.`;
+    			t34 = space();
+    			pre1 = element("pre");
+    			t35 = text(t35_value);
+    			button1.disabled = button1_disabled_value = !/*hasChanges*/ ctx[2];
     		},
     		m(target, anchor) {
     			insert(target, h1, anchor);
@@ -1491,9 +2096,16 @@
     			insert(target, hr2, anchor);
     			insert(target, t21, anchor);
     			insert(target, p3, anchor);
-    			insert(target, t25, anchor);
-    			insert(target, pre, anchor);
-    			append(pre, t26);
+    			insert(target, t27, anchor);
+    			insert(target, pre0, anchor);
+    			append(pre0, t28);
+    			insert(target, t29, anchor);
+    			insert(target, hr3, anchor);
+    			insert(target, t30, anchor);
+    			insert(target, p4, anchor);
+    			insert(target, t34, anchor);
+    			insert(target, pre1, anchor);
+    			append(pre1, t35);
     			current = true;
 
     			if (!mounted) {
@@ -1503,14 +2115,21 @@
     		},
     		p(ctx, [dirty]) {
     			const carform_changes = {};
-    			if (dirty & /*form*/ 1) carform_changes.form = /*form*/ ctx[0];
+
+    			if (!updating_form && dirty & /*form*/ 1) {
+    				updating_form = true;
+    				carform_changes.form = /*form*/ ctx[0];
+    				add_flush_callback(() => updating_form = false);
+    			}
+
     			carform.$set(carform_changes);
 
-    			if (!current || dirty & /*hasChanges*/ 2 && button1_disabled_value !== (button1_disabled_value = !/*hasChanges*/ ctx[1])) {
+    			if (!current || dirty & /*hasChanges*/ 4 && button1_disabled_value !== (button1_disabled_value = !/*hasChanges*/ ctx[2])) {
     				button1.disabled = button1_disabled_value;
     			}
 
-    			if ((!current || dirty & /*form*/ 1) && t26_value !== (t26_value = JSON.stringify(/*form*/ ctx[0], undefined, 4) + "")) set_data(t26, t26_value);
+    			if ((!current || dirty & /*lastChange*/ 2) && t28_value !== (t28_value = JSON.stringify(/*lastChange*/ ctx[1], undefined, 4) + "")) set_data(t28, t28_value);
+    			if ((!current || dirty & /*form*/ 1) && t35_value !== (t35_value = JSON.stringify(/*form*/ ctx[0], undefined, 4) + "")) set_data(t35, t35_value);
     		},
     		i(local) {
     			if (current) return;
@@ -1545,8 +2164,14 @@
     			if (detaching) detach(hr2);
     			if (detaching) detach(t21);
     			if (detaching) detach(p3);
-    			if (detaching) detach(t25);
-    			if (detaching) detach(pre);
+    			if (detaching) detach(t27);
+    			if (detaching) detach(pre0);
+    			if (detaching) detach(t29);
+    			if (detaching) detach(hr3);
+    			if (detaching) detach(t30);
+    			if (detaching) detach(p4);
+    			if (detaching) detach(t34);
+    			if (detaching) detach(pre1);
     			mounted = false;
     			dispose();
     		}
@@ -1565,19 +2190,23 @@
     		changes: {}
     	};
 
-    	/** @type {import('..').createResource} */
-    	const create = resourceCreator();
+    	/**
+     * The `Field` component emits a change event, which you could use to
+     * do some other business logic, as needed. Here we're just storing it to look
+     * at for the demo.
+     */
+    	let lastChange;
 
-    	// Here we simulate loading from an API that gives back a
-    	// normal JSON:API response object. We need to transform
-    	// that into the `JsonApiForm` object structure.
-    	const loadCar = () => fetchCarFromApi().then(response => {
-    		$$invalidate(0, form = formFromResponse(response));
-    	});
+    	const loadCar = () => fetchCarFromMockApi().then(result => $$invalidate(0, form = result));
 
-    	const formChange_handler = event => $$invalidate(0, form = onFormChange(form, event));
-    	const createResource_handler = event => $$invalidate(0, form = create(form, event));
-    	const removeResource_handler = event => $$invalidate(0, form = removeResource(form, event));
+    	function carform_form_binding(value) {
+    		form = value;
+    		$$invalidate(0, form);
+    	}
+
+    	const change_handler = event => $$invalidate(1, lastChange = ['change', event.detail]);
+    	const create_handler = event => $$invalidate(1, lastChange = ['create', event.detail]);
+    	const remove_handler = event => $$invalidate(1, lastChange = ['remove', event.detail]);
 
     	$$self.$$.update = () => {
     		if ($$self.$$.dirty & /*form*/ 1) {
@@ -1587,18 +2216,19 @@
      * used to, e.g., leave a "Save Changes" button disabled until there are actual changes.
      * @type boolean
      */
-    			$$invalidate(1, hasChanges = Object.keys(form.changes || {}).length);
+    			$$invalidate(2, hasChanges = Object.keys(form.changes || {}).length);
     		}
     	};
 
     	return [
     		form,
+    		lastChange,
     		hasChanges,
-    		create,
     		loadCar,
-    		formChange_handler,
-    		createResource_handler,
-    		removeResource_handler
+    		carform_form_binding,
+    		change_handler,
+    		create_handler,
+    		remove_handler
     	];
     }
 

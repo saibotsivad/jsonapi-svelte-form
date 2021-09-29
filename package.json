@@ -19,14 +19,19 @@
     "svelte"
   ],
   "type": "module",
-  "main": "dist/build.js",
-  "module": "dist/build.mjs",
-  "unpkg": "dist/build.unpkg.js",
+  "svelte": "src/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "unpkg": "dist/index.unpkg.js",
   "types": "index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/build.mjs",
-      "require": "./dist/build.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./response-to-form": {
+      "import": "./dist/response-to-form.mjs",
+      "require": "./dist/response-to-form.js"
     },
     "./package.json": "./package.json"
   },
@@ -36,9 +41,9 @@
   ],
   "scripts": {
     "test": "uvu src '\\.test\\.js$'",
-    "build": "bundt src/index.js && rollup -c",
+    "build": "rimraf dist && rollup -c",
     "dev": "rollup -c -w",
-    "serve": "sirv demo --dev --port 3000"
+    "serve": "sirv docs --dev --port 3000"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^20.0.0",
@@ -46,15 +51,16 @@
     "bundt": "github:saibotsivad/bundt",
     "rimraf": "^3.0.2",
     "rollup": "^2.57.0",
+    "rollup-plugin-npm-run": "^1.0.2",
     "rollup-plugin-svelte": "^7.1.0",
     "sirv-cli": "^1.0.14",
     "svelte": "^3.43.0",
     "uvu": "^0.5.1"
   },
   "dependencies": {
-    "dlv": "^1.1.3",
-    "dset": "^3.1.0",
+    "just-debounce-it": "^1.5.0",
     "just-diff": "^3.1.1",
+    "klona": "^2.0.4",
     "pointer-props": "^1.0.1"
   }
 }

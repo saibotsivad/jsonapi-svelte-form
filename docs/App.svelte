@@ -1,7 +1,6 @@
 <script>
 	import CarForm from './CarForm.svelte'
-	import { fetchCarFromApi } from './mock-api.js'
-	import { formFromResponse, resourceCreator, removeResource, onFormChange } from '../src/index.js'
+	import { fetchCarFromMockApi } from './mock-api.js'
 
 	/** @type {import('..').JsonApiForm} */
 	let form = {
@@ -14,6 +13,13 @@
 	let readonly = false
 
 	/**
+	 * The `Field` component emits a change event, which you could use to
+	 * do some other business logic, as needed. Here we're just storing it to look
+	 * at for the demo.
+	 */
+	let lastChange
+
+	/**
 	 * Here we are demonstrating one of the ways to reactively update the display based on
 	 * whether there are any changes between the original and current form. This is typically
 	 * used to, e.g., leave a "Save Changes" button disabled until there are actual changes.
@@ -21,16 +27,8 @@
 	 */
 	$: hasChanges = Object.keys(form.changes || {}).length
 
-	/** @type {import('..').createResource} */
-	const create = resourceCreator()
-
-	// Here we simulate loading from an API that gives back a
-	// normal JSON:API response object. We need to transform
-	// that into the `JsonApiForm` object structure.
-	const loadCar = () => fetchCarFromApi()
-		.then(response => {
-			form = formFromResponse(response)
-		})
+	const loadCar = () => fetchCarFromMockApi()
+		.then(result => form = result)
 </script>
 
 <h1>JSON:API Svelte Form (Demo)</h1>
@@ -56,11 +54,11 @@
 
 <CarForm
 	carId="001"
-	{form}
+	bind:form
 	{readonly}
-	on:formChange={event => form = onFormChange(form, event)}
-	on:createResource={event => form = create(form, event)}
-	on:removeResource={event => form = removeResource(form, event)}
+	on:change={event => lastChange = [ 'change', event.detail ]}
+	on:create={event => lastChange = [ 'create', event.detail ]}
+	on:remove={event => lastChange = [ 'remove', event.detail]}
 />
 
 <p>
@@ -73,6 +71,17 @@
 <button disabled={!hasChanges}>Save Changes</button>
 
 <hr/>
+
+<p>
+	The <code>Form</code> and <code>Field</code> components emit events, which you
+	could use to drive other business logic. The demo isn't using them for anything,
+	but you can see what they looks like here after you've changed something, or
+	created or removed a resource.
+</p>
+
+<pre>{JSON.stringify(lastChange, undefined, 4)}</pre>
+
+<hr>
 
 <p>
 	Here you can see what the <code>form</code> object looks like, as you modify it.

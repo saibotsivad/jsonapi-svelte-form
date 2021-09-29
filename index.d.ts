@@ -69,42 +69,4 @@ export interface JsonApiForm {
 	changes: JsonApiChangesMap;
 }
 
-export interface FormChangeEventDetail {
-	id: string;
-	keypath: Array<string | number>;
-	value: any;
-}
-
-export interface FormChangeEvent {
-	detail: FormChangeEventDetail;
-}
-
-export interface CreateResourceEventDetail {
-	isArray?: boolean;
-	type: string;
-	relatedId: string;
-	relatedName: string;
-}
-
-export interface CreateResourceEvent {
-	detail: CreateResourceEventDetail;
-}
-
-export interface RemoveResourceEventDetail {
-	id: string;
-	type: string;
-}
-
-export interface RemoveResourceEvent {
-	detail: RemoveResourceEventDetail;
-}
-
-export function createResource(form: JsonApiForm, event: CreateResourceEvent): JsonApiForm;
-
-export function onFormChange(form: JsonApiForm, event: FormChangeEvent): JsonApiForm;
-
-export function resourceCreator(startingCount?: number): (form: JsonApiForm, event: CreateResourceEvent) => JsonApiForm;
-
-export function removeResource(form: JsonApiForm, event: RemoveResourceEvent): JsonApiForm;
-
-export function formFromResponse(response: JsonApiResponse): JsonApiForm;
+export function responseToForm(response: JsonApiResponse): JsonApiForm;

@@ -1,8 +1,8 @@
 import { test } from 'uvu'
 import * as assert from 'uvu/assert'
-import { formFromResponse } from './index.js'
+import { responseToForm } from './response-to-form.js'
 
-test('formFromResponse', () => {
+test('responseToForm', () => {
 	const response = {
 		data: {
 			id: 'thing1',
@@ -15,7 +15,7 @@ test('formFromResponse', () => {
 			}
 		]
 	}
-	const form = formFromResponse(response)
+	const form = responseToForm(response)
 	assert.equal({
 		data: {
 			thing1: {
@@ -37,7 +37,8 @@ test('formFromResponse', () => {
 				type: 'thing',
 			},
 		},
-		changes: {}
+		changes: {},
+		errors: {}
 	}, form)
 
 	form.data.thing1.type = 'not thing'

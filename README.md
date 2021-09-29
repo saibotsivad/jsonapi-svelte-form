@@ -2,7 +2,14 @@
 
 Tooling for building forms in Svelte for JSON:API backends.
 
-TODO intro
+If you use Svelte to build business webapps, and those webapps interact
+with [JSON:API](https://jsonapi.org/), than you've probably thought about
+building some tooling to help make it easier to build good forms, without
+so much boilerplate.
+
+## The Big Idea
+
+
 
 ## 1: Change Handler
 
