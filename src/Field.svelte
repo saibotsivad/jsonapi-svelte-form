@@ -5,7 +5,7 @@
 	import _diff from 'just-diff'
 	const { diff } = _diff
 
-	/** @type {import('..').JsonApiForm} */
+	/** @type {import('..').JsonApiSvelteForm} */
 	export let form
 	/** @type string */
 	export let id
@@ -31,7 +31,7 @@
 		(updatedValue) => {
 			form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
 			if (!form.changes[id].length) delete form.changes[id]
-			if (Object.keys(form.changes).length) form.state = 'unsaved'
+			if (Object.keys(form.changes).length) form.state = 'changed'
 			else form.state = 'unchanged'
 			dispatch('change', { id, keypath: tokens, value: updatedValue })
 		},

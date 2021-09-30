@@ -1,15 +1,15 @@
 <script>
 	import CarForm from './CarForm.svelte'
-	import { fetchCarFromMockApi, saveCarToMockApi } from './mock-api.js'
+	import { fetchCar, saveCar } from './car-controller.js'
 
 	const carId = '001'
 
-	/** @type {import('..').JsonApiForm} */
+	/** @type {import('..').JsonApiSvelteForm} */
 	let form = {
 		data: {},
 		original: {},
 		changes: {},
-		state: 'start'
+		state: 'loading'
 	}
 
 	/**
@@ -19,13 +19,13 @@
 	 */
 	let lastChange
 
-	const loadCar = () => fetchCarFromMockApi()
+	const load = () => fetchCar({ id: carId })
 		.then(result => form = result)
 
-	const saveCar = fail => {
+	const save = fail => {
 		form.state = 'saving'
 		delete form.errors
-		saveCarToMockApi({ form, id: carId, fail })
+		saveCar({ form, id: carId, fail })
 			.then(response => form = response)
 			.catch(({ errors, state }) => {
 				form.errors = errors
@@ -50,7 +50,7 @@
 	You would probably normally use your routing library or other framework tools to
 	load data for a form, but here we're simulating it by "fetching" from a mock API.
 </p>
-<button on:click={loadCar}>{form.state === 'start' ? 'Load' : 'Reload'} Car</button>
+<button on:click={load}>{form.state === 'start' ? 'Load' : 'Reload'} Car</button>
 <hr>
 
 <h2>Car Editor</h2>
@@ -74,9 +74,9 @@
 	The current form state is: <code>{form.state}</code>
 </p>
 
-<button disabled={form.state !== 'unsaved'} on:click={() => saveCar(false)}>Save Changes (request will succeed)</button>
+<button disabled={form.state !== 'unsaved'} on:click={() => save(false)}>Save Changes (request will succeed)</button>
 <br>
-<button disabled={form.state !== 'unsaved'} on:click={() => saveCar(true)}>Save Changes (request will fail)</button>
+<button disabled={form.state !== 'unsaved'} on:click={() => save(true)}>Save Changes (request will fail)</button>
 
 <hr/>
 

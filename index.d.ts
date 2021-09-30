@@ -4,11 +4,9 @@ export interface JsonApiRelationshipSingle {
 	id: string;
 	type: string;
 }
-
 export interface JsonApiRelationships {
 	[index: string]: JsonApiRelationshipSingle | Array<JsonApiRelationshipSingle>;
 }
-
 export interface JsonApiData {
 	id: string;
 	type: string;
@@ -16,95 +14,121 @@ export interface JsonApiData {
 	meta?: object;
 	relationships?: JsonApiRelationships;
 }
-
-export interface JsonApiBody {
+export interface JsonApiLinks {
+	about?: string;
+}
+export interface JsonApiErrorSource {
+	pointer?: string;
+	parameter?: string;
+}
+export interface JsonApiError {
+	id?: string;
+	links?: JsonApiLinks;
+	status?: string;
+	code?: string;
+	title?: string;
+	detail?: string;
+	source?: JsonApiErrorSource;
+	meta?: object;
+}
+export interface JsonApiSuccessBody {
 	data: Array<JsonApiData> | JsonApiData;
 	included?: Array<JsonApiData>;
 }
+export interface JsonApiErrorBody {
+	errors: Array<JsonApiError>;
+}
 
-export interface JsonApiDataMap {
+export interface FormDataMap {
 	[id: string]: JsonApiData;
 }
-
-export interface JsonApiChangesMap {
-	[id: string]: Array<JsonApiChange>;
+export interface FormChangesMap {
+	[id: string]: Array<FormChange>;
 }
-
-// from: https://github.com/angus-c/just/blob/master/packages/collection-diff/index.d.ts
-export interface JsonApiChange {
-	op: Operation;
+export interface FormChange {
+	op: Operation; // from: https://github.com/angus-c/just/blob/master/packages/collection-diff/index.d.ts
 	path: Array<string | number>;
 	value: any;
 }
-
-export interface JsonApiError {
-	// TODO from the specs
-}
-
 export interface FormErrors {
 	/**
 	 * The mapped errors is a map of resource identifier to an object which has the same property
 	 * structure as the resource, but properties only exist if there is an error associated
-	 * with that property, and the values are lists of JSON:API error objects.
+	 * with that property, and the values are lists of `JsonApiError` objects.
 	 *
 	 * For example, if a resource had an error on a `name` property, the `FormErrors` might
 	 * look like this:
 	 *
 	 *   {
-	 *       data: {
+	 *       mapped: {
 	 *           001: {
 	 *               attributes: {
 	 *                   name: [ JsonApiError ]
 	 *               }
 	 *           }
 	 *       },
-	 *       errors: {
-	 *           001: {
-	 *               attributes: {
-	 *                   name: 'The name must not be "foo".'
-	 *               }
-	 *           }
-	 *       }
+	 *       others: [ JsonApiError ]
 	 *   }
 	 */
-	mapped: JsonApiDataMap;
+	mapped: FormDataMap;
 	other?: Array<JsonApiError>
 }
 
-export interface JsonApiError {
-	errors: FormErrors;
-	state: FormState;
-}
+/**
+ * The form transitions through states in an FSM manner:
+ *
+ *   State   |  Allowed Transitions
+ * ----------|-----------------------
+ * null      | loading
+ * loading   | loaded, error
+ * loaded    | changed, error
+ * changed   | unchanged, saving, error
+ * unchanged | changed, error
+ * saving    | saved, error
+ * saved     | changed, error
+ * error     | unchanged
+ */
+export type FormState = 'loading' | 'loaded' | 'changed' | 'unchanged' | 'saving' | 'saved' | 'error';
 
-export type FormState = 'start' | 'unsaved' | 'unchanged' | 'saving' | 'saved' | 'error';
-
-export interface JsonApiForm {
-	original: JsonApiDataMap;
-	data: JsonApiDataMap;
-	changes: JsonApiChangesMap;
+export interface JsonApiSvelteForm {
+	original: FormDataMap;
+	data: FormDataMap;
+	changes: FormChangesMap;
 	state: FormState;
 	errors?: FormErrors;
 }
+export function load(body: JsonApiSuccessBody): JsonApiSvelteForm;
+export function saved(body: JsonApiSuccessBody): JsonApiSvelteForm;
 
-export interface JsonApiResponseMapper {
-	/**
-	 * Map of the form index to the resource identifier, either "data" or
-	 * the "included" index.
-	 */
+/**
+ * Map of the form index (either "data" or the "included" index) to the resource
+ * identifier, for example:
+ *   {
+ *       data: 'id001',
+ *       0: 'id123',
+ *       1: 'id456'
+ *   }
+ */
+export interface FormErrorRemap {
 	[index: string]: string;
 }
 
-export interface ToForm {
-	body: JsonApiBody;
-	state?: FormState;
-	mapper?: JsonApiResponseMapper;
-}
-
-export function toForm(input: ToForm): JsonApiForm | JsonApiError;
-
-export interface ToRequest {
-	form: JsonApiForm;
+export interface TransitionToSaving {
+	form: JsonApiSvelteForm;
 	id: string;
 }
+export interface SavingDetails {
+	body: JsonApiSuccessBody;
+	remap: FormErrorRemap;
+}
+export function saving(input: TransitionToSaving): SavingDetails;
 
-export function toRequest(input: ToRequest): ToForm;
+export interface TransitionToError {
+	body: JsonApiErrorBody;
+	remap: FormErrorRemap;
+}
+export interface ErrorDetails {
+	errors: FormErrors;
+	state: "error";
+}
+export function error(input: TransitionToError): ErrorDetails;

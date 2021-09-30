@@ -36,10 +36,10 @@ When you get a response from a JSON:API server, you map it to a `JsonApiForm`
 object, probably using the `toForm` function:
 
 ```js
-import { toForm } from 'jsonapi-svelte-form/response-to-form'
+import { load } from 'jsonapi-svelte-form/mapper'
 const fetchVehicle = () => fetch('/api/v1/vehicles/id001')
 	.then(response => response.json())
-	.then(toForm)
+	.then(load)
 ```
 
 That data structure looks like this:
@@ -183,7 +183,8 @@ Required properties to set on the `Form` component:
 Optional properties:
 
 * `startingCount: Integer` - The starting number to use on generated identifiers.
-* `prefix: String` - The prefix used on the identifiers of created resources.
+* `prefix: String` (default: `GID`) - The prefix used on the identifiers of created resources.
+* `suffix: String` (default: blank string) - The suffix used on the identifiers of created resources.
 
 Slot properties:
 

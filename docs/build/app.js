@@ -921,7 +921,7 @@
     		updatedValue => {
     			$$invalidate(3, form.changes[id] = diff(form.original[id] || {}, form.data[id] || {}), form);
     			if (!form.changes[id].length) delete form.changes[id];
-    			if (Object.keys(form.changes).length) $$invalidate(3, form.state = 'unsaved', form); else $$invalidate(3, form.state = 'unchanged', form);
+    			if (Object.keys(form.changes).length) $$invalidate(3, form.state = 'changed', form); else $$invalidate(3, form.state = 'unchanged', form);
     			dispatch('change', { id, keypath: tokens, value: updatedValue });
     		},
     		debounceMillis || 15,
@@ -2093,104 +2093,14 @@
     	return val;
     }
 
-    /**
-     * Create a JsonApiForm object, decoupling the original from the mutable data.
-     *
-     * @type {import('..').toForm}
-     */
-    const toForm = response => {
-    	let { body, mapper, state = 'start' } = response || {};
-    	body = body || {};
-
-    	let errors;
-    	if (body.errors && mapper) {
-    		errors = { mapped: {}, other: [] };
-    		for (let error of body.errors) {
-    			let pointer = error.source?.pointer;
-    			if (pointer) {
-    				pointer = toTokens(pointer);
-    				let [ p0, p1, ...p ] = pointer;
-    				if (p0 !== 'data' && p0 !== 'included') {
-    					// this is an incorrectly formatted pointer
-    					errors.other.push(error);
-    				} else {
-    					let mapperKey = p0 === 'data'
-    						? 'data'
-    						: p1;
-    					let tokens = p0 === 'data'
-    						? [ p1, ...p ]
-    						: p;
-    					let accessor = [ mapper[mapperKey], ...tokens ];
-    					let pointerErrors = get(errors.mapped, accessor) || [];
-    					pointerErrors.push(error);
-    					set(errors.mapped, accessor, pointerErrors);
-    				}
-    			} else {
-    				errors.other.push(error);
-    			}
-    		}
-    		if (!Object.keys(errors.mapped).length) delete errors.mapped;
-    		if (!errors.other.length) delete errors.other;
-    	}
-    	if (errors && Object.keys(errors).length) return { errors, state: 'error' }
-
-    	let data = {};
-    	let original = {};
-    	let put = resource => {
-    		data[resource.id] = resource;
-    		original[resource.id] = klona(resource);
-    	};
-    	let all = [
-    		...(
-    			Array.isArray(body.data)
-    				? body.data
-    				: [ body.data ]
-    		),
-    		...(body.included || [])
-    	].filter(Boolean);
-    	for (let resource of all) put(resource);
-
-    	return {
-    		data,
-    		original,
-    		state,
-    		changes: {},
-    	}
-    };
-
-    /**
-     *
-     * @type {import('..').toRequest}
-     */
-    const toRequest = ({ form, id }) => {
-    	let mapper = {
-    		data: id
-    	};
-    	let index = 0;
-    	let included = [];
-    	for (let resourceId in form.data || []) {
-    		if (resourceId !== id) {
-    			included.push(form.data[resourceId]);
-    			mapper[index++] = resourceId;
-    		}
-    	}
-    	return {
-    		mapper,
-    		body: {
-    			data: form.data[id],
-    			included: included.length ? included : undefined,
-    		}
-    	}
-    };
+    const delay = async millis => new Promise(r => setTimeout(() => r(), millis));
 
     // Here we are mocking a fetch from a JSON:API compliant server, which
-    // returns a JSON object in the normal structure. To turn that into
-    // a JsonApiForm, pass the whole response (after parsing the JSON)
-    // to the `toForm` function.
-    const fetchCarFromMockApi = async () => toForm({
+    // returns a JSON object in the normal structure.
+    const GET = async id => delay(1200).then(() => ({
     	body: {
     		data: {
-    			id: '001',
+    			id,
     			type: 'car',
     			attributes: {
     				color: 'red'
@@ -2199,7 +2109,7 @@
     				wheels: {
     					data: [
     						{
-    							id: '002',
+    							id: `${id}w`,
     							type: 'wheel'
     						}
     					]
@@ -2208,7 +2118,7 @@
     		},
     		included: [
     			{
-    				id: '002',
+    				id: `${id}w`,
     				type: 'wheel',
     				attributes: {
     					size: 'big'
@@ -2216,9 +2126,7 @@
     			}
     		]
     	}
-    });
-
-    const delay = async millis => new Promise(r => setTimeout(() => r(), millis));
+    }));
 
     const mockPostWithFail = async ({ data, included }) => new Promise((resolve, reject) => {
     	// For the demo, we'll construct an array of errors, one for every object
@@ -2261,28 +2169,157 @@
     	reject(mockResponse);
     });
 
-    const mockPost = async (body, fail) => {
+    const PUT = async (body, fail) => {
     	await delay(1200);
     	return fail
     		? mockPostWithFail(body)
     		: klona({ body })
     };
 
-    const saveCarToMockApi = async ({ form, id, fail }) => {
+    /**
+     * Given a normal response from a JSON:API server, create a JsonApiForm in the
+     * loaded state.
+     *
+     * @type {import('..').load}
+     */
+    const load = body => {
+    	body = body || {};
+    	let data = {};
+    	let original = {};
+    	let put = resource => {
+    		data[resource.id] = resource;
+    		original[resource.id] = klona(resource);
+    	};
+    	for (let resource of (body.included || [])) put(resource);
+    	if (Array.isArray(body.data)) for (let resource of body.data) put(resource);
+    	else if (body.data) put(body.data);
+    	return {
+    		data,
+    		original,
+    		state: 'loaded',
+    		changes: {},
+    	}
+    };
+
+    /**
+     * Given a JsonApiForm, create a JSON:API request with `data` and `included` (if set
+     * on the form), as well as an object to map errors returned from the server.
+     *
+     * The mapper is needed so that the JsonApiForm, which is an id-mapped object, can
+     * be connected to the JSON:API request's `included` property, which is an array.
+     * The map object connects the index to the resource identifier, which is used for
+     * mapping errors which contain a JSON Pointer.
+     *
+     * @type {import('..').saving}
+     */
+    const saving = ({ form, id }) => {
+    	let remap = { data: id };
+    	let included = [];
+    	let index = 0;
+    	for (let resourceId in form.data) {
+    		if (resourceId !== id) {
+    			included.push(form.data[resourceId]);
+    			remap[index++] = resourceId;
+    		}
+    	}
+    	let body = { data: form.data[id] };
+    	if (included.length) body.included = included;
+    	return { remap, body }
+    };
+
+    /**
+     * After a JSON:API save request is completed, if there are no errors, this will transition
+     * the form to the saved state.
+     *
+     * @type {import('..').saved}
+     */
+    const saved = body => {
+    	const form = load(body);
+    	form.state = 'saved';
+    	return form
+    };
+
+    const add = (obj, keypath, value) => {
+    	let list = get(obj, keypath) || [];
+    	list.push(value);
+    	set(obj, keypath, list);
+    };
+
+    /**
+     * Given a JSON:API error response, combine it with a remap object to create an error
+     * object which has a map of JSON Pointer paths to errors, and a list of errors that
+     * are not mapped with Pointer paths.
+     *
+     * @type {import('..').error}
+     */
+    const error = ({ body, remap }) => {
+    	let errors = { mapped: {}, other: [] };
+    	for (let error of (body.errors || [])) {
+    		let pointer = error.source?.pointer;
+    		if (pointer) {
+    			pointer = toTokens(pointer);
+    			let [ p0, p1, ...p ] = pointer;
+    			if (p0 === 'data') {
+    				add(errors.mapped, [ 'data', p1, ...p ], error);
+    			} else if (p0 === 'included') {
+    				add(errors.mapped, [ remap[p1], ...p ], error);
+    			} else {
+    				errors.other.push(error);
+    			}
+    		} else {
+    			errors.other.push(error);
+    		}
+    	}
+    	if (!Object.keys(errors.mapped).length) delete errors.mapped;
+    	if (!errors.other.length) delete errors.other;
+    	return {
+    		errors,
+    		state: 'error'
+    	}
+    };
+
+    /**
+     * When loading a resource, all you need is to pass the JSON:API response
+     * to the `load` function.
+     *
+     * @param id
+     * @return {Promise<JsonApiSvelteForm>}
+     */
+    const fetchCar = async ({ id }) => {
+    	const { body } = await GET(id);
+    	return load(body)
+    };
+
+    /**
+     * When saving a resource, you need to hold on to the `remap` property, in case
+     * the JSON:API server returns an error response.
+     *
+     * @param {JsonApiSvelteForm} form - The modified form.
+     * @param {String} id - The resource identifier.
+     * @param {Boolean} [fail] - Whether the call to save should throw the mock error or not.
+     * @return {Promise<JsonApiSvelteForm|ErrorDetails>}
+     */
+    const saveCar = async ({ form, id, fail }) => {
     	// First the form is turned into a JSON:API request, e.g. { data, included: [] }
     	// as well as a mapper to map source pointers on errors back to their original.
-    	let { body, mapper } = toRequest({ form, id });
-    	// (Your fetch implementation might not throw on 400+ responses, but it's a
-    	// pretty common pattern, and assumed here.)
-    	try {
-    		const response = await mockPost(body, fail);
-    		// Finally, we need to map that response to the JsonApiForm structure. In this
+    	let { body, remap } = saving({ form, id });
+
+    	// Many HTTP request implementations will throw when a request returns
+    	// an error, but the MDN `fetch` specs say:
+    	//   > A fetch() promise does not reject on HTTP errors
+    	// If your implementation throws on errors, you'll have to modify this
+    	// to use a try/catch flow.
+    	const response = await PUT(body, fail);
+    	const json = await response.json();
+
+    	if (json.errors) {
+    		// If there are errors in the body, we'll throw the constructed `ErrorDetails` object, using
+    		// the `remap` object to connect the JSON:API index-based Pointers to the id-based ones.
+    		throw error({ body: json, remap })
+    	} else {
+    		// If the response was a success, we need to map that response to the JsonApiForm structure. In this
     		// case there aren't any errors, so `mapper` doesn't end up getting used.
-    		return toForm({ body: response.body, state: 'saved' })
-    	} catch (errorResponse) {
-    		// In this case, the body has a JSON:API errors list at the root, so we
-    		// combine that with the mapper to generate the form.
-    		throw toForm({ mapper, body: errorResponse.body, state: 'error' })
+    		return saved(json)
     	}
     };
 
@@ -2482,7 +2519,7 @@
 
     			if (!mounted) {
     				dispose = [
-    					listen(button0, "click", /*loadCar*/ ctx[2]),
+    					listen(button0, "click", /*load*/ ctx[2]),
     					listen(button1, "click", /*click_handler*/ ctx[8]),
     					listen(button2, "click", /*click_handler_1*/ ctx[9])
     				];
@@ -2574,7 +2611,7 @@
     		data: {},
     		original: {},
     		changes: {},
-    		state: 'start'
+    		state: 'loading'
     	};
 
     	/**
@@ -2584,13 +2621,13 @@
      */
     	let lastChange;
 
-    	const loadCar = () => fetchCarFromMockApi().then(result => $$invalidate(0, form = result));
+    	const load = () => fetchCar({ id: carId }).then(result => $$invalidate(0, form = result));
 
-    	const saveCar = fail => {
+    	const save = fail => {
     		$$invalidate(0, form.state = 'saving', form);
     		delete form.errors;
 
-    		saveCarToMockApi({ form, id: carId, fail }).then(response => $$invalidate(0, form = response)).catch(({ errors, state }) => {
+    		saveCar({ form, id: carId, fail }).then(response => $$invalidate(0, form = response)).catch(({ errors, state }) => {
     			$$invalidate(0, form.errors = errors, form);
     			$$invalidate(0, form.state = state, form);
     		});
@@ -2604,14 +2641,14 @@
     	const change_handler = event => $$invalidate(1, lastChange = ['change', event.detail]);
     	const create_handler = event => $$invalidate(1, lastChange = ['create', event.detail]);
     	const remove_handler = event => $$invalidate(1, lastChange = ['remove', event.detail]);
-    	const click_handler = () => saveCar(false);
-    	const click_handler_1 = () => saveCar(true);
+    	const click_handler = () => save(false);
+    	const click_handler_1 = () => save(true);
 
     	return [
     		form,
     		lastChange,
-    		loadCar,
-    		saveCar,
+    		load,
+    		save,
     		carform_form_binding,
     		change_handler,
     		create_handler,

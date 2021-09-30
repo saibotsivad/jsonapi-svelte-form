@@ -1,14 +1,13 @@
 import { klona } from 'klona/json'
-import { toForm, toRequest } from '../src/mapper.js'
+
+const delay = async millis => new Promise(r => setTimeout(() => r(), millis))
 
 // Here we are mocking a fetch from a JSON:API compliant server, which
-// returns a JSON object in the normal structure. To turn that into
-// a JsonApiForm, pass the whole response (after parsing the JSON)
-// to the `toForm` function.
-export const fetchCarFromMockApi = async () => toForm({
+// returns a JSON object in the normal structure.
+export const GET = async id => delay(1200).then(() => ({
 	body: {
 		data: {
-			id: '001',
+			id,
 			type: 'car',
 			attributes: {
 				color: 'red'
@@ -17,7 +16,7 @@ export const fetchCarFromMockApi = async () => toForm({
 				wheels: {
 					data: [
 						{
-							id: '002',
+							id: `${id}w`,
 							type: 'wheel'
 						}
 					]
@@ -26,7 +25,7 @@ export const fetchCarFromMockApi = async () => toForm({
 		},
 		included: [
 			{
-				id: '002',
+				id: `${id}w`,
 				type: 'wheel',
 				attributes: {
 					size: 'big'
@@ -34,9 +33,7 @@ export const fetchCarFromMockApi = async () => toForm({
 			}
 		]
 	}
-})
-
-const delay = async millis => new Promise(r => setTimeout(() => r(), millis))
+}))
 
 const mockPostWithFail = async ({ data, included }) => new Promise((resolve, reject) => {
 	// For the demo, we'll construct an array of errors, one for every object
@@ -79,27 +76,9 @@ const mockPostWithFail = async ({ data, included }) => new Promise((resolve, rej
 	reject(mockResponse)
 })
 
-const mockPost = async (body, fail) => {
+export const PUT = async (body, fail) => {
 	await delay(1200)
 	return fail
 		? mockPostWithFail(body)
 		: klona({ body })
-}
-
-export const saveCarToMockApi = async ({ form, id, fail }) => {
-	// First the form is turned into a JSON:API request, e.g. { data, included: [] }
-	// as well as a mapper to map source pointers on errors back to their original.
-	let { body, mapper } = toRequest({ form, id })
-	// (Your fetch implementation might not throw on 400+ responses, but it's a
-	// pretty common pattern, and assumed here.)
-	try {
-		const response = await mockPost(body, fail)
-		// Finally, we need to map that response to the JsonApiForm structure. In this
-		// case there aren't any errors, so `mapper` doesn't end up getting used.
-		return toForm({ body: response.body, state: 'saved' })
-	} catch (errorResponse) {
-		// In this case, the body has a JSON:API errors list at the root, so we
-		// combine that with the mapper to generate the form.
-		throw toForm({ mapper, body: errorResponse.body, state: 'error' })
-	}
 }

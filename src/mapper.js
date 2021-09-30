@@ -2,91 +2,103 @@ import { get, set, toTokens } from 'pointer-props'
 import { klona } from 'klona/json'
 
 /**
- * Create a JsonApiForm object, decoupling the original from the mutable data.
+ * Given a normal response from a JSON:API server, create a JsonApiForm in the
+ * loaded state.
  *
- * @type {import('..').toForm}
+ * @type {import('..').load}
  */
-export const toForm = response => {
-	let { body, mapper, state = 'start' } = response || {}
+export const load = body => {
 	body = body || {}
-
-	let errors
-	if (body.errors && mapper) {
-		errors = { mapped: {}, other: [] }
-		for (let error of body.errors) {
-			let pointer = error.source?.pointer
-			if (pointer) {
-				pointer = toTokens(pointer)
-				let [ p0, p1, ...p ] = pointer
-				if (p0 !== 'data' && p0 !== 'included') {
-					// this is an incorrectly formatted pointer
-					errors.other.push(error)
-				} else {
-					let mapperKey = p0 === 'data'
-						? 'data'
-						: p1
-					let tokens = p0 === 'data'
-						? [ p1, ...p ]
-						: p
-					let accessor = [ mapper[mapperKey], ...tokens ]
-					let pointerErrors = get(errors.mapped, accessor) || []
-					pointerErrors.push(error)
-					set(errors.mapped, accessor, pointerErrors)
-				}
-			} else {
-				errors.other.push(error)
-			}
-		}
-		if (!Object.keys(errors.mapped).length) delete errors.mapped
-		if (!errors.other.length) delete errors.other
-	}
-	if (errors && Object.keys(errors).length) return { errors, state: 'error' }
-
 	let data = {}
 	let original = {}
 	let put = resource => {
 		data[resource.id] = resource
 		original[resource.id] = klona(resource)
 	}
-	let all = [
-		...(
-			Array.isArray(body.data)
-				? body.data
-				: [ body.data ]
-		),
-		...(body.included || [])
-	].filter(Boolean)
-	for (let resource of all) put(resource)
-
+	for (let resource of (body.included || [])) put(resource)
+	if (Array.isArray(body.data)) for (let resource of body.data) put(resource)
+	else if (body.data) put(body.data)
 	return {
 		data,
 		original,
-		state,
+		state: 'loaded',
 		changes: {},
 	}
 }
 
 /**
+ * Given a JsonApiForm, create a JSON:API request with `data` and `included` (if set
+ * on the form), as well as an object to map errors returned from the server.
  *
- * @type {import('..').toRequest}
+ * The mapper is needed so that the JsonApiForm, which is an id-mapped object, can
+ * be connected to the JSON:API request's `included` property, which is an array.
+ * The map object connects the index to the resource identifier, which is used for
+ * mapping errors which contain a JSON Pointer.
+ *
+ * @type {import('..').saving}
  */
-export const toRequest = ({ form, id }) => {
-	let mapper = {
-		data: id
-	}
-	let index = 0
+export const saving = ({ form, id }) => {
+	let remap = { data: id }
 	let included = []
-	for (let resourceId in form.data || []) {
+	let index = 0
+	for (let resourceId in form.data) {
 		if (resourceId !== id) {
 			included.push(form.data[resourceId])
-			mapper[index++] = resourceId
+			remap[index++] = resourceId
 		}
 	}
-	return {
-		mapper,
-		body: {
-			data: form.data[id],
-			included: included.length ? included : undefined,
+	let body = { data: form.data[id] }
+	if (included.length) body.included = included
+	return { remap, body }
+}
+
+/**
+ * After a JSON:API save request is completed, if there are no errors, this will transition
+ * the form to the saved state.
+ *
+ * @type {import('..').saved}
+ */
+export const saved = body => {
+	const form = load(body)
+	form.state = 'saved'
+	return form
+}
+
+const add = (obj, keypath, value) => {
+	let list = get(obj, keypath) || []
+	list.push(value)
+	set(obj, keypath, list)
+}
+
+/**
+ * Given a JSON:API error response, combine it with a remap object to create an error
+ * object which has a map of JSON Pointer paths to errors, and a list of errors that
+ * are not mapped with Pointer paths.
+ *
+ * @type {import('..').error}
+ */
+export const error = ({ body, remap }) => {
+	let errors = { mapped: {}, other: [] }
+	for (let error of (body.errors || [])) {
+		let pointer = error.source?.pointer
+		if (pointer) {
+			pointer = toTokens(pointer)
+			let [ p0, p1, ...p ] = pointer
+			if (p0 === 'data') {
+				add(errors.mapped, [ 'data', p1, ...p ], error)
+			} else if (p0 === 'included') {
+				add(errors.mapped, [ remap[p1], ...p ], error)
+			} else {
+				errors.other.push(error)
+			}
+		} else {
+			errors.other.push(error)
 		}
+	}
+	if (!Object.keys(errors.mapped).length) delete errors.mapped
+	if (!errors.other.length) delete errors.other
+	return {
+		errors,
+		state: 'error'
 	}
 }
