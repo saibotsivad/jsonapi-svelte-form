@@ -30,7 +30,7 @@ There's a demo [here](https://saibotsivad.github.io/jsonapi-svelte-form/), or as
 [Svelte REPL](https://svelte.dev/repl/ca6db8ec270d4f5c9f8cd679592e8441?version=3.43.0),
 to see how to use the tooling.
 
-## More Detailed Example
+## Data Structure
 
 When you get a response from a JSON:API server, you map it to a `JsonApiForm`
 object, probably using the `responseToForm` function:
@@ -115,6 +115,12 @@ is the empty string, so the `form.data` property would be set to the empty strin
 calculating the `changes` list for the `form` object: if the property was originally  undefined and
 a change event is emitted where `value` is the empty string, the `form.changes` list will not be empty.
 
+One way to handle that difference is simply:
+
+```html
+<input ... on:input={event => set(event.target.value || undefined)} />
+```
+
 This may be wanted or unwanted behaviour, so it is left up to your implementation to handle the difference.
 
 ## Field Component API
@@ -151,16 +157,22 @@ Slot properties:
 
 ## Form Component
 
+The `Form` component is responsible for handling creating and removing resources, so
+at the root of your form you'd have something like:
 
+```html
+<Form bind:form let:remove let:create on:create on:remove>
+	<button on:click={() => create(resource)}Create</button>
+</Form>
+```
 
+New resources are placed on the `form.data` object, with an id generated using
+a configurable prefix (by default `GID`) and an incrementing counter, e.g. `GID1`
+will be the id of the first generated resource.
 
-
-TODO describe this better
-
-
-
-
-
+The `create` function requires new resources to have their relationship defined,
+so e.g. on a car form you might make a `wheel` resource, but that relationship would
+need to be defined.
 
 ## Form Component Api
 
