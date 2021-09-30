@@ -1936,6 +1936,7 @@
      * @type {import('..').responseToForm}
      */
     const responseToForm = response => {
+    	response = response || {};
     	const data = {};
     	const original = {};
     	const set = resource => {
@@ -1949,7 +1950,7 @@
     				: [ response.data ]
     		),
     		...(response.included || [])
-    	];
+    	].filter(Boolean);
     	for (let resource of all) set(resource);
     	return { data, original, changes: {}, errors: {} }
     };
