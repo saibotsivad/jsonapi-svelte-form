@@ -29,9 +29,9 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./response-to-form": {
-      "import": "./dist/response-to-form.js",
-      "require": "./dist/response-to-form.cjs"
+    "./mapper": {
+      "import": "./dist/mapper.js",
+      "require": "./dist/mapper.cjs"
     },
     "./package.json": "./package.json"
   },

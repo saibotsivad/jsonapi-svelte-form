@@ -1,8 +1,9 @@
 import { test } from 'uvu'
 import * as assert from 'uvu/assert'
-import { toForm } from './mapper.js'
+import { load } from './mapper.js'
+// TODO a file for each function
 
-test('toForm: data is single', () => {
+test('load: when data is single', () => {
 	const response = {
 		data: {
 			id: 'thing1',
@@ -15,7 +16,7 @@ test('toForm: data is single', () => {
 			}
 		]
 	}
-	const form = toForm(response)
+	const form = load(response)
 	assert.equal({
 		data: {
 			thing1: {
@@ -44,7 +45,7 @@ test('toForm: data is single', () => {
 	assert.equal(form.original.thing1.type, 'thing', 'not connected by reference')
 })
 
-test('toForm: data is list', () => {
+test('load: when data is a list', () => {
 	const response = {
 		data: [
 			{
@@ -53,7 +54,7 @@ test('toForm: data is list', () => {
 			}
 		]
 	}
-	const form = toForm(response)
+	const form = load(response)
 	assert.equal({
 		data: {
 			thing1: {
@@ -72,8 +73,9 @@ test('toForm: data is list', () => {
 	}, form)
 })
 
-test('toForm: when nothing is passed in aka a create form', () => {
-	const form = toForm()
+// TODO is this still a good idea?
+test('load: when nothing is passed in aka a create form', () => {
+	const form = load()
 	assert.equal({
 		data: {},
 		original: {},
