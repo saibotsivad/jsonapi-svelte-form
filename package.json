@@ -20,18 +20,18 @@
   ],
   "type": "module",
   "svelte": "src/index.js",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "unpkg": "dist/index.unpkg.js",
   "types": "index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./response-to-form": {
-      "import": "./dist/response-to-form.mjs",
-      "require": "./dist/response-to-form.js"
+      "import": "./dist/response-to-form.js",
+      "require": "./dist/response-to-form.cjs"
     },
     "./package.json": "./package.json"
   },
