@@ -72,4 +72,14 @@ test('responseToForm: data is list', () => {
 	}, form)
 })
 
+test('responseToForm: when nothing is passed in aka a create form', () => {
+	const form = responseToForm()
+	assert.equal({
+		data: {},
+		original: {},
+		changes: {},
+		errors: {}
+	}, form)
+})
+
 test.run()

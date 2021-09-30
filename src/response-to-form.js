@@ -6,6 +6,7 @@ import { klona } from 'klona/json'
  * @type {import('..').responseToForm}
  */
 export const responseToForm = response => {
+	response = response || {}
 	const data = {}
 	const original = {}
 	const set = resource => {
@@ -19,7 +20,7 @@ export const responseToForm = response => {
 				: [ response.data ]
 		),
 		...(response.included || [])
-	]
+	].filter(Boolean)
 	for (let resource of all) set(resource)
 	return { data, original, changes: {}, errors: {} }
 }

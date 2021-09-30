@@ -69,4 +69,4 @@ export interface JsonApiForm {
 	changes: JsonApiChangesMap;
 }
 
-export function responseToForm(response: JsonApiResponse): JsonApiForm;
+export function responseToForm(response?: JsonApiResponse): JsonApiForm;
