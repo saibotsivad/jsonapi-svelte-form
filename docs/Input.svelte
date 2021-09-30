@@ -49,6 +49,10 @@
 		id={elementId}
 	>
 	{#each errors as error}
-		<div class="invalid-feedback">{error.title}</div>
+		<div class="error">
+			<strong>Error: {error.title}</strong>
+			<br>
+			{error.detail}
+		</div>
 	{/each}
 </Field>

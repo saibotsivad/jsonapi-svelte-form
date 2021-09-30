@@ -33,13 +33,13 @@ to see how to use the tooling.
 ## Data Structure
 
 When you get a response from a JSON:API server, you map it to a `JsonApiForm`
-object, probably using the `responseToForm` function:
+object, probably using the `toForm` function:
 
 ```js
-import { responseToForm } from 'jsonapi-svelte-form/response-to-form'
+import { toForm } from 'jsonapi-svelte-form/response-to-form'
 const fetchVehicle = () => fetch('/api/v1/vehicles/id001')
 	.then(response => response.json())
-	.then(responseToForm)
+	.then(toForm)
 ```
 
 That data structure looks like this:

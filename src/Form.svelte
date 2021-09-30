@@ -6,12 +6,17 @@
 	export let form
 	export let startingCount = 0
 	export let prefix = 'GID'
+	export let suffix = ''
+
+	$: errors = form?.errors?.other || []
 
 	let count = startingCount
 
 	const makeDiff = (form, id) => {
 		form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
 		if (!form.changes[id].length) delete form.changes[id]
+		if (Object.keys(form.changes).length) form.state = 'unsaved'
+		else form.state = 'unchanged'
 	}
 
 	const dispatch = createEventDispatcher()
@@ -51,7 +56,7 @@
 	}
 
 	const create = ({ relId, relName, isArray, type }) => {
-		let id = `${prefix}${++count}`
+		let id = `${prefix}${++count}${suffix}`
 		form.data[id] = { type, id }
 		makeDiff(form, id)
 
@@ -69,4 +74,4 @@
 	}
 </script>
 
-<slot {create} {remove} />
+<slot {create} {remove} {errors} />

@@ -17,7 +17,7 @@ export interface JsonApiData {
 	relationships?: JsonApiRelationships;
 }
 
-export interface JsonApiResponse {
+export interface JsonApiBody {
 	data: Array<JsonApiData> | JsonApiData;
 	included?: Array<JsonApiData>;
 }
@@ -37,22 +37,24 @@ export interface JsonApiChange {
 	value: any;
 }
 
-export interface JsonApiForm {
-	original: JsonApiDataMap;
-	data: JsonApiDataMap;
+export interface JsonApiError {
+	// TODO from the specs
+}
+
+export interface FormErrors {
 	/**
-	 * The errors is a map of resource identifier to an object which has the same property
+	 * The mapped errors is a map of resource identifier to an object which has the same property
 	 * structure as the resource, but properties only exist if there is an error associated
-	 * with that property, and the values are all human-readable string error messages.
+	 * with that property, and the values are lists of JSON:API error objects.
 	 *
-	 * For example, if a resource had an error on a `name` property, the `JsonApiForm` might
+	 * For example, if a resource had an error on a `name` property, the `FormErrors` might
 	 * look like this:
 	 *
 	 *   {
 	 *       data: {
 	 *           001: {
 	 *               attributes: {
-	 *                   name: 'foo'
+	 *                   name: [ JsonApiError ]
 	 *               }
 	 *           }
 	 *       },
@@ -65,8 +67,44 @@ export interface JsonApiForm {
 	 *       }
 	 *   }
 	 */
-	errors: JsonApiDataMap;
-	changes: JsonApiChangesMap;
+	mapped: JsonApiDataMap;
+	other?: Array<JsonApiError>
 }
 
-export function responseToForm(response?: JsonApiResponse): JsonApiForm;
+export interface JsonApiError {
+	errors: FormErrors;
+	state: FormState;
+}
+
+export type FormState = 'start' | 'unsaved' | 'unchanged' | 'saving' | 'saved' | 'error';
+
+export interface JsonApiForm {
+	original: JsonApiDataMap;
+	data: JsonApiDataMap;
+	changes: JsonApiChangesMap;
+	state: FormState;
+	errors?: FormErrors;
+}
+
+export interface JsonApiResponseMapper {
+	/**
+	 * Map of the form index to the resource identifier, either "data" or
+	 * the "included" index.
+	 */
+	[index: string]: string;
+}
+
+export interface ToForm {
+	body: JsonApiBody;
+	state?: FormState;
+	mapper?: JsonApiResponseMapper;
+}
+
+export function toForm(input: ToForm): JsonApiForm | JsonApiError;
+
+export interface ToRequest {
+	form: JsonApiForm;
+	id: string;
+}
+
+export function toRequest(input: ToRequest): ToForm;

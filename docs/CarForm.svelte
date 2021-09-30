@@ -44,7 +44,7 @@
 	}
 </script>
 
-<Form bind:form let:remove let:create on:create on:remove>
+<Form bind:form let:remove let:create let:errors on:create on:remove>
 	<Input
 		label="Color"
 		id="001"
@@ -74,7 +74,7 @@
 					<Input
 						label="Position"
 						id={position.id}
-						keypath={[ 'attributes', 'name' ]}
+						keypath={[ 'attributes', 'position' ]}
 						bind:form
 						{readonly}
 						on:change
@@ -100,4 +100,12 @@
 		</button>
 
 	</div>
+
+	{#each errors as error}
+		<div class="error">
+			<strong>Unmapped Error: {error.title}</strong>
+			<br>
+			{error.detail}
+		</div>
+	{/each}
 </Form>

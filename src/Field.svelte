@@ -20,7 +20,7 @@
 
 	$: tokens = keypath.split ? toTokens(keypath) : keypath
 	$: value = get(form.data[id], tokens) || ''
-	$: errors = get(form.errors[id], tokens) || []
+	$: errors = get(form, [ 'errors', 'mapped', id, ...tokens ]) || []
 
 	/*
 	Because the diff calculation is expensive, we debounce so that e.g. entering text
@@ -31,6 +31,8 @@
 		(updatedValue) => {
 			form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
 			if (!form.changes[id].length) delete form.changes[id]
+			if (Object.keys(form.changes).length) form.state = 'unsaved'
+			else form.state = 'unchanged'
 			dispatch('change', { id, keypath: tokens, value: updatedValue })
 		},
 		debounceMillis || 15,

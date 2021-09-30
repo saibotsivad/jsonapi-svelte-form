@@ -1,16 +1,16 @@
 <script>
 	import CarForm from './CarForm.svelte'
-	import { fetchCarFromMockApi } from './mock-api.js'
+	import { fetchCarFromMockApi, saveCarToMockApi } from './mock-api.js'
+
+	const carId = '001'
 
 	/** @type {import('..').JsonApiForm} */
 	let form = {
 		data: {},
 		original: {},
-		errors: {},
-		changes: {}
+		changes: {},
+		state: 'start'
 	}
-	/** @type boolean */
-	let readonly = false
 
 	/**
 	 * The `Field` component emits a change event, which you could use to
@@ -19,16 +19,19 @@
 	 */
 	let lastChange
 
-	/**
-	 * Here we are demonstrating one of the ways to reactively update the display based on
-	 * whether there are any changes between the original and current form. This is typically
-	 * used to, e.g., leave a "Save Changes" button disabled until there are actual changes.
-	 * @type boolean
-	 */
-	$: hasChanges = Object.keys(form.changes || {}).length
-
 	const loadCar = () => fetchCarFromMockApi()
 		.then(result => form = result)
+
+	const saveCar = fail => {
+		form.state = 'saving'
+		delete form.errors
+		saveCarToMockApi({ form, id: carId, fail })
+			.then(response => form = response)
+			.catch(({ errors, state }) => {
+				form.errors = errors
+				form.state = state
+			})
+	}
 </script>
 
 <h1>JSON:API Svelte Form (Demo)</h1>
@@ -47,15 +50,14 @@
 	You would probably normally use your routing library or other framework tools to
 	load data for a form, but here we're simulating it by "fetching" from a mock API.
 </p>
-<button on:click={loadCar}>Load Car</button>
+<button on:click={loadCar}>{form.state === 'start' ? 'Load' : 'Reload'} Car</button>
 <hr>
 
 <h2>Car Editor</h2>
 
 <CarForm
-	carId="001"
+	{carId}
 	bind:form
-	{readonly}
 	on:change={event => lastChange = [ 'change', event.detail ]}
 	on:create={event => lastChange = [ 'create', event.detail ]}
 	on:remove={event => lastChange = [ 'remove', event.detail]}
@@ -68,7 +70,13 @@
 	button enable and then disable.
 </p>
 
-<button disabled={!hasChanges}>Save Changes</button>
+<p>
+	The current form state is: <code>{form.state}</code>
+</p>
+
+<button disabled={form.state !== 'unsaved'} on:click={() => saveCar(false)}>Save Changes (request will succeed)</button>
+<br>
+<button disabled={form.state !== 'unsaved'} on:click={() => saveCar(true)}>Save Changes (request will fail)</button>
 
 <hr/>
 
