@@ -9,8 +9,8 @@ import { load, saving, saved, error } from '../src/mapper.js'
  * @return {Promise<JsonApiSvelteForm>}
  */
 export const fetchCar = async ({ id }) => {
-	const { body } = await GET(id)
-	return load(body)
+	const response = await GET(id)
+	return load(await response.json())
 }
 
 /**

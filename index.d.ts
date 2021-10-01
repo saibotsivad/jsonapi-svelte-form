@@ -88,7 +88,7 @@ export interface FormErrors {
  * saved     | changed, error
  * error     | unchanged
  */
-export type FormState = 'loading' | 'loaded' | 'changed' | 'unchanged' | 'saving' | 'saved' | 'error';
+export type FormState = null | undefined | 'loading' | 'loaded' | 'changed' | 'unchanged' | 'saving' | 'saved' | 'error';
 
 export interface JsonApiSvelteForm {
 	original: FormDataMap;

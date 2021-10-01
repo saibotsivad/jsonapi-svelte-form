@@ -7,19 +7,20 @@ const watch = process.env.ROLLUP_WATCH
 
 export default [
 	{
-		input: 'src/response-to-form.js',
+		input: 'src/mapper.js',
 		output: [
 			{
-				file: 'dist/response-to-form.js',
+				file: 'dist/mapper.js',
 				format: 'es'
 			},
 			{
-				file: 'dist/response-to-form.cjs',
+				file: 'dist/mapper.cjs',
 				format: 'cjs'
 			},
 		],
 		external: [
-			'klona/json'
+			'klona/json',
+			'pointer-props'
 		]
 	},
 	{

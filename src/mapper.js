@@ -1,5 +1,5 @@
-import { get, set, toTokens } from 'pointer-props'
 import { klona } from 'klona/json'
+import { get, set, toTokens } from 'pointer-props'
 
 /**
  * Given a normal response from a JSON:API server, create a JsonApiForm in the
@@ -85,7 +85,7 @@ export const error = ({ body, remap }) => {
 			pointer = toTokens(pointer)
 			let [ p0, p1, ...p ] = pointer
 			if (p0 === 'data') {
-				add(errors.mapped, [ 'data', p1, ...p ], error)
+				add(errors.mapped, [ remap.data, p1, ...p ], error)
 			} else if (p0 === 'included') {
 				add(errors.mapped, [ remap[p1], ...p ], error)
 			} else {

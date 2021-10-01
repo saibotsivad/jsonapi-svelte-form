@@ -8,8 +8,7 @@
 	let form = {
 		data: {},
 		original: {},
-		changes: {},
-		state: 'loading'
+		changes: {}
 	}
 
 	/**
@@ -19,8 +18,11 @@
 	 */
 	let lastChange
 
-	const load = () => fetchCar({ id: carId })
-		.then(result => form = result)
+	const load = () => {
+		form.state = 'loading'
+		fetchCar({ id: carId })
+			.then(result => form = result)
+	}
 
 	const save = fail => {
 		form.state = 'saving'
@@ -50,7 +52,9 @@
 	You would probably normally use your routing library or other framework tools to
 	load data for a form, but here we're simulating it by "fetching" from a mock API.
 </p>
-<button on:click={load}>{form.state === 'start' ? 'Load' : 'Reload'} Car</button>
+<button on:click={load} disabled={form.state === 'loading'}>
+	{!form.state || form.state === 'loading' ? 'Load' : 'Reload'} Car
+</button>
 <hr>
 
 <h2>Car Editor</h2>
@@ -74,9 +78,9 @@
 	The current form state is: <code>{form.state}</code>
 </p>
 
-<button disabled={form.state !== 'unsaved'} on:click={() => save(false)}>Save Changes (request will succeed)</button>
+<button disabled={form.state !== 'changed'} on:click={() => save(false)}>Save Changes (request will succeed)</button>
 <br>
-<button disabled={form.state !== 'unsaved'} on:click={() => save(true)}>Save Changes (request will fail)</button>
+<button disabled={form.state !== 'changed'} on:click={() => save(true)}>Save Changes (request will fail)</button>
 
 <hr/>
 

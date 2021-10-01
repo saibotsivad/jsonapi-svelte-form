@@ -2094,11 +2094,12 @@
     }
 
     const delay = async millis => new Promise(r => setTimeout(() => r(), millis));
+    const json = data => ({ json: async () => data });
 
     // Here we are mocking a fetch from a JSON:API compliant server, which
     // returns a JSON object in the normal structure.
-    const GET = async id => delay(1200).then(() => ({
-    	body: {
+    const GET = async id => delay(1200)
+    	.then(() => ({
     		data: {
     			id,
     			type: 'car',
@@ -2125,32 +2126,30 @@
     				}
     			}
     		]
-    	}
-    }));
+    	}))
+    	.then(json);
 
-    const mockPostWithFail = async ({ data, included }) => new Promise((resolve, reject) => {
+    const mockPostWithFail = ({ included }) => {
     	// For the demo, we'll construct an array of errors, one for every object
     	// on the `mapper`, as well as one extra to see how that looks.
     	let mockResponse = {
-    		body: {
-    			errors: [
-    				{
-    					title: 'Unknown Error',
-    					detail: 'This is an error that does not have a source pointer.'
-    				},
-    				{
-    					title: 'Invalid Color',
-    					detail: 'Whatever color you put in here is invalid.',
-    					source: {
-    						// If there are pointers on the errors, they're mapped
-    						// to the resource by id. Since the "car" is the primary
-    						// resource on the request, an API returning an error
-    						// for the car color would look like this:
-    						pointer: '/data/attributes/color'
-    					}
+    		errors: [
+    			{
+    				title: 'Unknown Error',
+    				detail: 'This is an error that does not have a source pointer.'
+    			},
+    			{
+    				title: 'Invalid Color',
+    				detail: 'Whatever color you put in here is invalid.',
+    				source: {
+    					// If there are pointers on the errors, they're mapped
+    					// to the resource by id. Since the "car" is the primary
+    					// resource on the request, an API returning an error
+    					// for the car color would look like this:
+    					pointer: '/data/attributes/color'
     				}
-    			]
-    		}
+    			}
+    		]
     	};
     	let index = 0;
     	for (let resource of (included || [])) {
@@ -2158,7 +2157,7 @@
     		if (resource.type === 'car') propName = 'color';
     		if (resource.type === 'wheel') propName = 'size';
     		if (resource.type === 'position') propName = 'position';
-    		mockResponse.body.errors.push({
+    		mockResponse.errors.push({
     			title: 'Error for a resource.',
     			detail: `There was an error for id=${resource.id}`,
     			source: {
@@ -2166,14 +2165,16 @@
     			}
     		});
     	}
-    	reject(mockResponse);
-    });
+    	return mockResponse
+    };
 
     const PUT = async (body, fail) => {
     	await delay(1200);
-    	return fail
-    		? mockPostWithFail(body)
-    		: klona({ body })
+    	return json(
+    		fail
+    			? mockPostWithFail(body)
+    			: klona(body)
+    	)
     };
 
     /**
@@ -2260,7 +2261,7 @@
     			pointer = toTokens(pointer);
     			let [ p0, p1, ...p ] = pointer;
     			if (p0 === 'data') {
-    				add(errors.mapped, [ 'data', p1, ...p ], error);
+    				add(errors.mapped, [ remap.data, p1, ...p ], error);
     			} else if (p0 === 'included') {
     				add(errors.mapped, [ remap[p1], ...p ], error);
     			} else {
@@ -2286,8 +2287,8 @@
      * @return {Promise<JsonApiSvelteForm>}
      */
     const fetchCar = async ({ id }) => {
-    	const { body } = await GET(id);
-    	return load(body)
+    	const response = await GET(id);
+    	return load(await response.json())
     };
 
     /**
@@ -2335,9 +2336,14 @@
     	let p1;
     	let t10;
     	let button0;
-    	let t11_value = (/*form*/ ctx[0].state === 'start' ? 'Load' : 'Reload') + "";
+
+    	let t11_value = (!/*form*/ ctx[0].state || /*form*/ ctx[0].state === 'loading'
+    	? 'Load'
+    	: 'Reload') + "";
+
     	let t11;
     	let t12;
+    	let button0_disabled_value;
     	let t13;
     	let hr1;
     	let t14;
@@ -2465,8 +2471,9 @@
     			t41 = space();
     			pre1 = element("pre");
     			t42 = text(t42_value);
-    			button1.disabled = button1_disabled_value = /*form*/ ctx[0].state !== 'unsaved';
-    			button2.disabled = button2_disabled_value = /*form*/ ctx[0].state !== 'unsaved';
+    			button0.disabled = button0_disabled_value = /*form*/ ctx[0].state === 'loading';
+    			button1.disabled = button1_disabled_value = /*form*/ ctx[0].state !== 'changed';
+    			button2.disabled = button2_disabled_value = /*form*/ ctx[0].state !== 'changed';
     		},
     		m(target, anchor) {
     			insert(target, h1, anchor);
@@ -2528,7 +2535,14 @@
     			}
     		},
     		p(ctx, [dirty]) {
-    			if ((!current || dirty & /*form*/ 1) && t11_value !== (t11_value = (/*form*/ ctx[0].state === 'start' ? 'Load' : 'Reload') + "")) set_data(t11, t11_value);
+    			if ((!current || dirty & /*form*/ 1) && t11_value !== (t11_value = (!/*form*/ ctx[0].state || /*form*/ ctx[0].state === 'loading'
+    			? 'Load'
+    			: 'Reload') + "")) set_data(t11, t11_value);
+
+    			if (!current || dirty & /*form*/ 1 && button0_disabled_value !== (button0_disabled_value = /*form*/ ctx[0].state === 'loading')) {
+    				button0.disabled = button0_disabled_value;
+    			}
+
     			const carform_changes = {};
 
     			if (!updating_form && dirty & /*form*/ 1) {
@@ -2540,11 +2554,11 @@
     			carform.$set(carform_changes);
     			if ((!current || dirty & /*form*/ 1) && t21_value !== (t21_value = /*form*/ ctx[0].state + "")) set_data(t21, t21_value);
 
-    			if (!current || dirty & /*form*/ 1 && button1_disabled_value !== (button1_disabled_value = /*form*/ ctx[0].state !== 'unsaved')) {
+    			if (!current || dirty & /*form*/ 1 && button1_disabled_value !== (button1_disabled_value = /*form*/ ctx[0].state !== 'changed')) {
     				button1.disabled = button1_disabled_value;
     			}
 
-    			if (!current || dirty & /*form*/ 1 && button2_disabled_value !== (button2_disabled_value = /*form*/ ctx[0].state !== 'unsaved')) {
+    			if (!current || dirty & /*form*/ 1 && button2_disabled_value !== (button2_disabled_value = /*form*/ ctx[0].state !== 'changed')) {
     				button2.disabled = button2_disabled_value;
     			}
 
@@ -2607,12 +2621,7 @@
     const carId = '001';
 
     function instance($$self, $$props, $$invalidate) {
-    	let form = {
-    		data: {},
-    		original: {},
-    		changes: {},
-    		state: 'loading'
-    	};
+    	let form = { data: {}, original: {}, changes: {} };
 
     	/**
      * The `Field` component emits a change event, which you could use to
@@ -2621,7 +2630,10 @@
      */
     	let lastChange;
 
-    	const load = () => fetchCar({ id: carId }).then(result => $$invalidate(0, form = result));
+    	const load = () => {
+    		$$invalidate(0, form.state = 'loading', form);
+    		fetchCar({ id: carId }).then(result => $$invalidate(0, form = result));
+    	};
 
     	const save = fail => {
     		$$invalidate(0, form.state = 'saving', form);
