@@ -53,7 +53,14 @@
 	load data for a form, but here we're simulating it by "fetching" from a mock API.
 </p>
 <button on:click={load} disabled={form.state === 'loading'}>
-	{!form.state || form.state === 'loading' ? 'Load' : 'Reload'} Car
+	{#if form.state === 'loading'}
+		Loading
+	{:else if !form.state}
+		Load
+	{:else}
+		Reload
+	{/if}
+	Car
 </button>
 <hr>
 

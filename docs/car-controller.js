@@ -1,5 +1,5 @@
 import { GET, PUT } from './mock-api.js'
-import { load, saving, saved, error } from '../src/mapper.js'
+import { load, saving, saved, error } from '../lib/mapper.js'
 
 /**
  * When loading a resource, all you need is to pass the JSON:API response

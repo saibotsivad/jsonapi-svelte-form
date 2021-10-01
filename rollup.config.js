@@ -7,7 +7,7 @@ const watch = process.env.ROLLUP_WATCH
 
 export default [
 	{
-		input: 'src/mapper.js',
+		input: 'lib/mapper.js',
 		output: [
 			{
 				file: 'dist/mapper.js',
