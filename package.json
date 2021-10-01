@@ -33,6 +33,7 @@
   "scripts": {
     "test": "uvu src '\\.test\\.js$'",
     "build": "rimraf dist && rollup -c",
+    "postbuild": "cp index.d.ts mapper",
     "dev": "rollup -c -w",
     "serve": "sirv docs --dev --port 3000"
   },
