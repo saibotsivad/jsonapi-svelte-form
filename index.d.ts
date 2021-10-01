@@ -35,6 +35,10 @@ export interface JsonApiSuccessBody {
 	data: Array<JsonApiData> | JsonApiData;
 	included?: Array<JsonApiData>;
 }
+export interface JsonApiSingleResourceSuccessBody {
+	data: JsonApiData;
+	included?: Array<JsonApiData>;
+}
 export interface JsonApiErrorBody {
 	errors: Array<JsonApiError>;
 }
@@ -97,8 +101,16 @@ export interface JsonApiSvelteForm {
 	state: FormState;
 	errors?: FormErrors;
 }
+export interface SavableJsonApiSvelteForm extends JsonApiSvelteForm {
+	/**
+	 * If the form is concerned primarily with a single resource, e.g. if fetching, saving,
+	 * and updating, will all write to a JSON:API endpoint where the `data` property is a
+	 * single resource, than this property will indicate the identifier of that resource.
+	 */
+	primaryId: string;
+}
 export function load(body: JsonApiSuccessBody): JsonApiSvelteForm;
-export function saved(body: JsonApiSuccessBody): JsonApiSvelteForm;
+export function saved(body: JsonApiSingleResourceSuccessBody): SavableJsonApiSvelteForm;
 
 /**
  * Map of the form index (either "data" or the "included" index) to the resource
@@ -113,15 +125,11 @@ export interface FormErrorRemap {
 	[index: string]: string;
 }
 
-export interface TransitionToSaving {
-	form: JsonApiSvelteForm;
-	id: string;
-}
 export interface SavingDetails {
-	body: JsonApiSuccessBody;
+	body: JsonApiSingleResourceSuccessBody;
 	remap: FormErrorRemap;
 }
-export function saving(input: TransitionToSaving): SavingDetails;
+export function saving(form: SavableJsonApiSvelteForm): SavingDetails;
 
 export interface TransitionToError {
 	body: JsonApiErrorBody;

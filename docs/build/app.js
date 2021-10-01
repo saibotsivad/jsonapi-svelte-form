@@ -2185,21 +2185,23 @@
      */
     const load = body => {
     	body = body || {};
-    	let data = {};
-    	let original = {};
+    	let output = {
+    		data: {},
+    		original: {},
+    		changes: {},
+    		state: 'loaded'
+    	};
     	let put = resource => {
-    		data[resource.id] = resource;
-    		original[resource.id] = klona(resource);
+    		output.data[resource.id] = resource;
+    		output.original[resource.id] = klona(resource);
     	};
     	for (let resource of (body.included || [])) put(resource);
     	if (Array.isArray(body.data)) for (let resource of body.data) put(resource);
-    	else if (body.data) put(body.data);
-    	return {
-    		data,
-    		original,
-    		state: 'loaded',
-    		changes: {},
+    	else if (body.data) {
+    		put(body.data);
+    		output.primaryId = body.data.id;
     	}
+    	return output
     };
 
     /**
@@ -2213,17 +2215,17 @@
      *
      * @type {import('..').saving}
      */
-    const saving = ({ form, id }) => {
-    	let remap = { data: id };
+    const saving = form => {
+    	let remap = { data: form.primaryId };
     	let included = [];
     	let index = 0;
     	for (let resourceId in form.data) {
-    		if (resourceId !== id) {
+    		if (resourceId !== form.primaryId) {
     			included.push(form.data[resourceId]);
     			remap[index++] = resourceId;
     		}
     	}
-    	let body = { data: form.data[id] };
+    	let body = { data: form.data[form.primaryId] };
     	if (included.length) body.included = included;
     	return { remap, body }
     };
@@ -2234,7 +2236,7 @@
      *
      * @type {import('..').saved}
      */
-    const saved = body => {
+    const saved = (body) => {
     	const form = load(body);
     	form.state = 'saved';
     	return form

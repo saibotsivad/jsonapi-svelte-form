@@ -31,7 +31,7 @@
     "src"
   ],
   "scripts": {
-    "test": "uvu src '\\.test\\.js$'",
+    "test": "uvu lib '\\.test\\.js$'",
     "build": "rimraf dist && rollup -c",
     "postbuild": "cp index.d.ts mapper",
     "dev": "rollup -c -w",
