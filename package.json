@@ -1,6 +1,6 @@
 {
   "name": "jsonapi-svelte-form",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Tooling for building forms in Svelte for JSON:API backends.",
   "author": {
     "name": "Tobias Davis",
