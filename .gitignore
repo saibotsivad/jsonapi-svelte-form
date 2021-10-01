@@ -1,5 +1,6 @@
 /node_modules
 /dist
+/mapper
 .DS_Store
 *.lock
 *.log
