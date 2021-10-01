@@ -10,11 +10,11 @@ export default [
 		input: 'lib/mapper.js',
 		output: [
 			{
-				file: 'dist/mapper.js',
+				file: 'dist/mapper.mjs',
 				format: 'es'
 			},
 			{
-				file: 'dist/mapper.cjs',
+				file: 'dist/mapper.js',
 				format: 'cjs'
 			},
 		],
@@ -27,11 +27,11 @@ export default [
 		input: 'src/index.js',
 		output: [
 			{
-				file: 'dist/index.js',
+				file: 'dist/index.mjs',
 				format: 'es'
 			},
 			{
-				file: 'dist/index.cjs',
+				file: 'dist/index.js',
 				format: 'cjs'
 			},
 		],

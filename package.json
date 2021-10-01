@@ -18,20 +18,19 @@
     "form",
     "svelte"
   ],
-  "type": "module",
   "svelte": "src/index.js",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "unpkg": "dist/index.unpkg.js",
   "types": "index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
     "./mapper": {
-      "import": "./dist/mapper.js",
-      "require": "./dist/mapper.cjs"
+      "import": "./dist/mapper.mjs",
+      "require": "./dist/mapper.js"
     },
     "./package.json": "./package.json"
   },
