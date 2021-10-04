@@ -21,6 +21,7 @@
 	$: tokens = keypath.split ? toTokens(keypath) : keypath
 	$: value = get(form.data[id], tokens) || ''
 	$: errors = get(form, [ 'errors', 'mapped', id, ...tokens ]) || []
+	$: disabled = !form.state || [ 'saving', 'loading' ].includes(form.state)
 
 	/*
 	Because the diff calculation is expensive, we debounce so that e.g. entering text
@@ -40,8 +41,10 @@
 	)
 
 	/**
-	 * Set the value back to the form.
-	 * @param {any} v - The value to set.
+	 * Set the field value. Note that you'll need to take care of casting empty strings
+	 * to `undefined`, or strings to numbers, etc.
+	 *
+	 * @type {import('..').set}
 	 */
 	export const set = v => {
 		let [ k1, k2, k3, k4, k5, k6 ] = tokens
@@ -68,4 +71,4 @@
 	}
 </script>
 
-<slot {value} {set} {errors} />
+<slot {value} {set} {errors} {disabled} />

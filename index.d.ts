@@ -140,3 +140,19 @@ export interface ErrorDetails {
 	state: "error";
 }
 export function error(input: TransitionToError): ErrorDetails;
+
+export function set(v: any);
+
+export interface CreateDetails {
+	relId: string;
+	relName: string;
+	type: string;
+	isArray?: boolean;
+}
+export function create(input: CreateDetails);
+
+export interface RemoveDetails {
+	id: string;
+	type: string;
+}
+export function remove(input: RemoveDetails);

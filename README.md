@@ -154,6 +154,7 @@ Slot properties:
 * `value: any` - The value located at the resources keypath, or undefined.
 * `errors: Array<JsonApiError>` - The list of errors, or an empty list.
 * `set: Function` - Call this with the updated value, when it changes.
+* `disabled: Boolean` - A convenient property which is true if the form is in the `saving` or `loading` state.
 
 ## Form Component
 
@@ -197,6 +198,7 @@ Slot properties:
 * `remove: Function` - Used to remove a resource. Call with an object containing these properties:
   * `id: String` - The identifier of the resource to remove.
   * `type: String` - The type of the resource to remove.
+* `disabled: Boolean` - A convenient property which is true if the form is in the `saving` or `loading` state.
 
 ## License
 

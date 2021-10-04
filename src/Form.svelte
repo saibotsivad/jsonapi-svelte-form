@@ -9,6 +9,7 @@
 	export let suffix = ''
 
 	$: errors = form?.errors?.other || []
+	$: disabled = !form.state || [ 'saving', 'loading' ].includes(form.state)
 
 	let count = startingCount
 
@@ -21,6 +22,11 @@
 
 	const dispatch = createEventDispatcher()
 
+	/**
+	 * Remove a resource from the Form.
+	 *
+	 * @type {import('..').remove}
+	 */
 	const remove = ({ id, type }) => {
 		delete form.data[id]
 		makeDiff(form, id)
@@ -55,6 +61,11 @@
 		dispatch('remove', { id, type })
 	}
 
+	/**
+	 * Create a new resource in the Form, with a generated identifier.
+	 *
+	 * @type {import('..').create}
+	 */
 	const create = ({ relId, relName, isArray, type }) => {
 		let id = `${prefix}${++count}${suffix}`
 		form.data[id] = { type, id }
@@ -74,4 +85,4 @@
 	}
 </script>
 
-<slot {create} {remove} {errors} />
+<slot {create} {remove} {errors} {disabled} />
