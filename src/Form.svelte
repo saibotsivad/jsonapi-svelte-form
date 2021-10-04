@@ -4,14 +4,11 @@
 	const { diff } = _diff
 
 	export let form
-	export let startingCount = 0
 	export let prefix = 'GID'
 	export let suffix = ''
 
 	$: errors = form?.errors?.other || []
 	$: disabled = !form.state || [ 'saving', 'loading' ].includes(form.state)
-
-	let count = startingCount
 
 	const makeDiff = (form, id) => {
 		form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
@@ -67,7 +64,8 @@
 	 * @type {import('..').create}
 	 */
 	const create = ({ relId, relName, isArray, type }) => {
-		let id = `${prefix}${++count}${suffix}`
+		if (!form.gidIndex) form.gidIndex = 0
+		let id = `${prefix}${++form.gidIndex}${suffix}`
 		form.data[id] = { type, id }
 		makeDiff(form, id)
 

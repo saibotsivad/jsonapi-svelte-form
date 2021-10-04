@@ -183,7 +183,6 @@ Required properties to set on the `Form` component:
 
 Optional properties:
 
-* `startingCount: Integer` - The starting number to use on generated identifiers.
 * `prefix: String` (default: `GID`) - The prefix used on the identifiers of created resources.
 * `suffix: String` (default: blank string) - The suffix used on the identifiers of created resources.
 

@@ -100,6 +100,7 @@ export interface JsonApiSvelteForm {
 	changes: FormChangesMap;
 	state: FormState;
 	errors?: FormErrors;
+	gidIndex?: number;
 }
 export interface SavableJsonApiSvelteForm extends JsonApiSvelteForm {
 	/**

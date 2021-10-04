@@ -47,6 +47,16 @@
 	 * @type {import('..').set}
 	 */
 	export const set = v => {
+		// TODO this anywhere there's an error state
+		if (!form?.data?.[id]) {
+			form.errors = form.errors || { other: [], mapped: {} }
+			form.errors.other = form.errors.other || []
+			form.errors.other.push({
+				code: 'Incorrectly Generated Form',
+				detail: `Field was created but was not found on the form. [id=${id},keypath=${keypath}]`
+			})
+			return
+		}
 		let [ k1, k2, k3, k4, k5, k6 ] = tokens
 		let l = tokens.length
 		/*
