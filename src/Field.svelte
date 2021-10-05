@@ -1,9 +1,7 @@
 <script>
-	import { createEventDispatcher } from 'svelte'
 	import { get, toTokens } from 'pointer-props'
-	import debounce from 'just-debounce-it'
-	import _diff from 'just-diff'
-	const { diff } = _diff
+	import FieldSetter from './FieldSetter.svelte'
+	import FormCreate from './FormCreate.svelte'
 
 	/** @type {import('..').JsonApiSvelteForm} */
 	export let form
@@ -22,63 +20,10 @@
 	$: value = get(form.data[id], tokens) || ''
 	$: errors = get(form, [ 'errors', 'mapped', id, ...tokens ]) || []
 	$: disabled = !form.state || [ 'saving', 'loading' ].includes(form.state)
-
-	/*
-	Because the diff calculation is expensive, we debounce so that e.g. entering text
-	rapidly won't cause a sudden pile of blocking diff calculations to slow the UI.
-	 */
-	const dispatch = createEventDispatcher()
-	const change = debounce(
-		(updatedValue) => {
-			form.changes[id] = diff(form.original[id] || {}, form.data[id] || {})
-			if (!form.changes[id].length) delete form.changes[id]
-			if (Object.keys(form.changes).length) form.state = 'changed'
-			else form.state = 'unchanged'
-			dispatch('change', { id, keypath: tokens, value: updatedValue })
-		},
-		debounceMillis || 15,
-		true
-	)
-
-	/**
-	 * Set the field value. Note that you'll need to take care of casting empty strings
-	 * to `undefined`, or strings to numbers, etc.
-	 *
-	 * @type {import('..').set}
-	 */
-	export const set = v => {
-		// TODO this anywhere there's an error state
-		if (!form?.data?.[id]) {
-			form.errors = form.errors || { other: [], mapped: {} }
-			form.errors.other = form.errors.other || []
-			form.errors.other.push({
-				code: 'Incorrectly Generated Form',
-				detail: `Field was created but was not found on the form. [id=${id},keypath=${keypath}]`
-			})
-			return
-		}
-		let [ k1, k2, k3, k4, k5, k6 ] = tokens
-		let l = tokens.length
-		/*
-		The Svelte compiler looks for reassignment as the method to detect whether a
-		function inside a component is modifying a bound value. Because of this, the
-		reassignment process can't use the normal shortcut found in e.g. @lukeed/dset,
-		thus the following method which is limited in depth.
-		 */
-		l > 0 && (form.data[id][k1] ?? (form.data[id][k1] = {}))
-		l > 1 && (form.data[id][k1][k2] ?? (form.data[id][k1][k2] = {}))
-		l > 2 && (form.data[id][k1][k2][k3] ?? (form.data[id][k1][k2][k3] = {}))
-		l > 3 && (form.data[id][k1][k2][k3][k4] ?? (form.data[id][k1][k2][k3][k4] = {}))
-		l > 4 && (form.data[id][k1][k2][k3][k4][k5] ?? (form.data[id][k1][k2][k3][k4][k5] = {}))
-		l > 5 && (form.data[id][k1][k2][k3][k4][k5][k6] ?? (form.data[id][k1][k2][k3][k4][k5][k6] = {}))
-		if (l === 1) form.data[id][k1] = v
-		if (l === 2) form.data[id][k1][k2] = v
-		if (l === 3) form.data[id][k1][k2][k3] = v
-		if (l === 4) form.data[id][k1][k2][k3][k4] = v
-		if (l === 5) form.data[id][k1][k2][k3][k4][k5] = v
-		if (l === 6) form.data[id][k1][k2][k3][k4][k5][k6] = v
-		change(v)
-	}
 </script>
 
-<slot {value} {set} {errors} {disabled} />
+<FormCreate bind:form let:create>
+	<FieldSetter bind:form {id} {tokens} {debounceMillis} let:set>
+		<slot {create} {set} {value} {errors} {disabled} />
+	</FieldSetter>
+</FormCreate>

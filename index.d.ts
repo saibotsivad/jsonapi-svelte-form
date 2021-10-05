@@ -4,8 +4,12 @@ export interface JsonApiRelationshipSingle {
 	id: string;
 	type: string;
 }
+
+export interface JsonApiRelationshipData {
+	data:  JsonApiRelationshipSingle | Array<JsonApiRelationshipSingle>
+}
 export interface JsonApiRelationships {
-	[index: string]: JsonApiRelationshipSingle | Array<JsonApiRelationshipSingle>;
+	[index: string]: JsonApiRelationshipData;
 }
 export interface JsonApiData {
 	id: string;
@@ -110,7 +114,7 @@ export interface SavableJsonApiSvelteForm extends JsonApiSvelteForm {
 	 */
 	primaryId: string;
 }
-export function load(body: JsonApiSuccessBody): JsonApiSvelteForm;
+export function load(body: JsonApiSuccessBody, gidIndex: Number): JsonApiSvelteForm;
 export function saved(body: JsonApiSingleResourceSuccessBody): SavableJsonApiSvelteForm;
 
 /**

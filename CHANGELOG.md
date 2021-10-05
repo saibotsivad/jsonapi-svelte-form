@@ -22,7 +22,7 @@ Change categories are:
 ### Removed
 ### Security
 
-## [0.0.15]
+## [0.0.16]
 
 ### Changed
 - Based on some conversations with @TehShrike and others, reworked to be Svelte
@@ -35,5 +35,5 @@ Change categories are:
 
 [Unreleased]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...HEAD
 [1.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v1.0.0
-[0.0.15]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0...v0.0.15
+[0.0.16]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0...v0.0.16
 [0.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0-init...v0.0.0
