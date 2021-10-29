@@ -22,14 +22,16 @@ Change categories are:
 ### Removed
 ### Security
 
-## [0.0.17]
+## [0.0.18]
+### Added
+- The `create` function now takes `resource` as a property, to create the resource in some initial state. If set, the `id` and `type` will be overwritten.
 
+## [0.0.17]
 ### Changed
 - Based on some conversations with @TehShrike and others, reworked to be Svelte
   components, to gain performant reactivity.
 
 ## [0.0.0] - 2021-09-16
-
 ### Added
 - Created the base project.
 

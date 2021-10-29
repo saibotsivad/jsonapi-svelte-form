@@ -194,6 +194,7 @@ Slot properties:
   * `relName: String` - The relationship accessor name of the relationship.
   * `isArray: Boolean` (optional) - Set to true if the relationship is an array style.
   * `type: String` - The type of the resource to create.
+  * `resource: Object` - The initial state of the created resource, with `id` and `type` set, e.g. `resource = { attributes, meta }`.
 * `remove: Function` - Used to remove a resource. Call with an object containing these properties:
   * `id: String` - The identifier of the resource to remove.
   * `type: String` - The type of the resource to remove.

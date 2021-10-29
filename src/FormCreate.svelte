@@ -11,7 +11,7 @@
 	 *
 	 * @type {import('..').create}
 	 */
-	const create = makeDiff => ({ relId, relName, isArray, type }) => {
+	const create = makeDiff => ({ relId, relName, isArray, type, resource }) => {
 		if (!form.gidIndex) form.gidIndex = 0
 		let id = `${form.gidPrefix || 'GID'}${++form.gidIndex}${form.gidSuffix || ''}`
 		form.data[id] = { type, id }
@@ -24,7 +24,7 @@
 			data.push({ type, id })
 			form.data[relId].relationships[relName].data = data
 		} else {
-			form.data[relId].relationships[relName].data = { type, id }
+			form.data[relId].relationships[relName].data = { ...resource, type, id }
 		}
 		makeDiff(form, relId)
 		dispatch('create', { relId, relName, isArray, type })

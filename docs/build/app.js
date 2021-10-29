@@ -1019,7 +1019,7 @@
      *
      * @type {import('..').create}
      */
-    	const create = makeDiff => ({ relId, relName, isArray, type }) => {
+    	const create = makeDiff => ({ relId, relName, isArray, type, resource }) => {
     		if (!form.gidIndex) $$invalidate(1, form.gidIndex = 0, form);
     		let id = `${form.gidPrefix || 'GID'}${$$invalidate(1, ++form.gidIndex, form)}${form.gidSuffix || ''}`;
     		$$invalidate(1, form.data[id] = { type, id }, form);
@@ -1032,7 +1032,7 @@
     			data.push({ type, id });
     			$$invalidate(1, form.data[relId].relationships[relName].data = data, form);
     		} else {
-    			$$invalidate(1, form.data[relId].relationships[relName].data = { type, id }, form);
+    			$$invalidate(1, form.data[relId].relationships[relName].data = { ...resource, type, id }, form);
     		}
 
     		makeDiff(form, relId);
