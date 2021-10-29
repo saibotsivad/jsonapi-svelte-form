@@ -22,7 +22,7 @@ Change categories are:
 ### Removed
 ### Security
 
-## [0.0.18]
+## [0.0.19]
 ### Added
 - The `create` function now takes `resource` as a property, to create the resource in some initial state. If set, the `id` and `type` will be overwritten.
 
@@ -37,5 +37,6 @@ Change categories are:
 
 [Unreleased]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...HEAD
 [1.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v1.0.0
-[0.0.17]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0...v0.0.17
+[0.0.19]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.17...v0.0.19
+[0.0.17]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v0.0.17
 [0.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0-init...v0.0.0
