@@ -47,7 +47,7 @@
 <Form bind:form let:remove let:create let:errors on:create on:remove>
 	<Input
 		label="Color"
-		id="001"
+		id={form.primaryId}
 		keypath={[ 'attributes', 'color' ]}
 		bind:form
 		{readonly}

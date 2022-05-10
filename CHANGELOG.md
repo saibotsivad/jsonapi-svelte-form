@@ -23,6 +23,8 @@ Change categories are:
 ### Security
 
 ## [0.0.20](https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.19...v0.0.20) - 2022-05-10
+### Changed
+- **BREAKING CHANGE:** The export paths are set using the package.json `exports` property. In theory this shouldn't change anything, unless you were doing something funky. The exported things are pinned in the documentation now, and they shouldn't change in the future.
 ### Fixed
 - Relationships were not being removed correctly, causing the form to stay in an `unsaved` state even after all changes had been reverted.
 

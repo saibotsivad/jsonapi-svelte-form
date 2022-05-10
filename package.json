@@ -21,9 +21,20 @@
   "type": "module",
   "svelte": "src/index.js",
   "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "module": "dist/index.mjs",
   "unpkg": "dist/index.unpkg.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./mapper": {
+      "import": "./dist/mapper.mjs",
+      "require": "./dist/mapper.cjs"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "*.d.ts",
     "dist",
@@ -44,6 +55,7 @@
     "rollup": "^2.57.0",
     "rollup-plugin-npm-run": "^1.0.2",
     "rollup-plugin-svelte": "^7.1.0",
+    "rollup-plugin-terser": "^7.0.2",
     "sirv-cli": "^1.0.14",
     "svelte": "^3.43.0",
     "uvu": "^0.5.1"

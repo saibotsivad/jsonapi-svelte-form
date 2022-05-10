@@ -1,0 +1,41 @@
+# IDEs
+.idea
+.vscode
+
+# Github configs and Workflows
+.github
+
+# Docs don't need to go to npm, they're for Github pages
+/docs
+
+# keeping projects tidy
+.editorconfig
+.eslintrc.json
+.eslintrc.js
+.eslintrc
+.eslintrc.yml
+.eslintignore
+.prettierrc.json
+.prettierrc
+.prettierignore
+.prettierrc.js
+.jshintrc
+.jshintignore
+.stylelintrc.json
+.verbrc.md
+.lintignore
+.csslintrc
+
+# other configurations
+.nvmrc
+.gitattributes
+
+# build environments
+.travis.yml
+.circleci
+
+# test runners and related
+.zuul.yml
+.nycrc
+.testignore
+.istanbul.yml

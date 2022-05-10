@@ -8,7 +8,7 @@
 	let form = {
 		data: {},
 		original: {},
-		changes: {}
+		changes: {},
 	}
 
 	/**
@@ -66,13 +66,15 @@
 
 <h2>Car Editor</h2>
 
-<CarForm
-	{carId}
-	bind:form
-	on:change={event => lastChange = [ 'change', event.detail ]}
-	on:create={event => lastChange = [ 'create', event.detail ]}
-	on:remove={event => lastChange = [ 'remove', event.detail]}
-/>
+<fieldset disabled={!form.state || form.state === 'loading'}>
+	<CarForm
+		{carId}
+		bind:form
+		on:change={event => lastChange = [ 'change', event.detail ]}
+		on:create={event => lastChange = [ 'create', event.detail ]}
+		on:remove={event => lastChange = [ 'remove', event.detail]}
+	/>
+</fieldset>
 
 <p>
 	The "Save Changes" button doesn't actually do anything, it's just a demo of how

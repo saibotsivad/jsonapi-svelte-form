@@ -2,10 +2,29 @@
 
 Tooling for building forms in Svelte for JSON:API backends.
 
-If you use Svelte to build business webapps, and those webapps interact
-with [JSON:API](https://jsonapi.org/), than you've probably thought about
-building some tooling to help make it easier to build good forms, without
-so much boilerplate.
+If you use Svelte to build business webapps, and those webapps interact with [JSON:API](https://jsonapi.org/), than you've probably thought about building some tooling to help make it easier to build good forms, without so much boilerplate.
+
+## How to Use
+
+To import the Svelte components (documented below):
+
+```js
+import {
+	Field,
+	FieldSetter,
+	Form,
+	FormCreate,
+	FormRemove,
+	MakeDiff,
+	Relationship
+} from 'jsonapi-svelte-form'
+```
+
+To import the mapper functions:
+
+```js
+import { saving, error, saved } from 'jsonapi-svelte-form/mapper'
+```
 
 ## The Big Idea
 
@@ -26,14 +45,11 @@ Build a form with a couple Svelte component wrappers:
 
 Now, you can bind values using JSON Pointer paths.
 
-There's a demo [here](https://saibotsivad.github.io/jsonapi-svelte-form/), or as a
-[Svelte REPL](https://svelte.dev/repl/ca6db8ec270d4f5c9f8cd679592e8441?version=3.43.0),
-to see how to use the tooling.
+There's a demo [here](https://saibotsivad.github.io/jsonapi-svelte-form/), or as a [Svelte REPL](https://svelte.dev/repl/ca6db8ec270d4f5c9f8cd679592e8441?version=3.43.0), to see how to use the tooling.
 
 ## Data Structure
 
-When you get a response from a JSON:API server, you map it to a `JsonApiForm`
-object, probably using the `toForm` function:
+When you get a response from a JSON:API server, you map it to a `JsonApiForm` object, typically using the `load` function:
 
 ```js
 import { load } from 'jsonapi-svelte-form/mapper'
@@ -42,7 +58,7 @@ const fetchVehicle = () => fetch('/api/v1/vehicles/id001')
 	.then(load)
 ```
 
-That data structure looks like this:
+That structure of that object looks like this:
 
 ```js
 const JsonApiForm = {
@@ -105,15 +121,11 @@ When the `set` function of the `Field` component is called, e.g.:
 </Field>
 ```
 
-the component updates the appropriate `form.data` property, and then updates the `form.changes` list
-by doing a diff against the `form.original` property.
+the component updates the appropriate `form.data` property, and then updates the `form.changes` list by doing a diff against the `form.original` property.
 
 > **Note:** your component is responsible for handling the difference between undefined and empty-string.
 
-In the example above, when the input element is made to be empty, the default `event.target.value`
-is the empty string, so the `form.data` property would be set to the empty string. This matters when
-calculating the `changes` list for the `form` object: if the property was originally  undefined and
-a change event is emitted where `value` is the empty string, the `form.changes` list will not be empty.
+In the example above, when the input element is made to be empty, the default `event.target.value` is the empty string, so the `form.data` property would be set to the empty string. This matters when calculating the `changes` list for the `form` object: if the property was originally undefined and a change event is emitted where `value` is the empty string, the `form.changes` list will not be empty.
 
 One way to handle that difference is simply:
 
@@ -135,15 +147,11 @@ Required properties to set on the `Field` component:
 
 Optional properties:
 
-* `debounceMillis: Integer` (default: `15`) - On every change, the diff between original and updated
-  is calculated. This can get very expensive, and since it blocks the UI, it can cause the form to
-  feel very jerky if many changes are made quickly. To counteract this, there is a debounce on the
-  diff calculation, and you can modify the debounce delay with this property.
+* `debounceMillis: Integer` (default: `15`) - On every change, the diff between original and updated is calculated. This can get very expensive, and since it blocks the UI, it can cause the form to feel very jerky if many changes are made quickly. To counteract this, there is a debounce on the diff calculation, and you can modify the debounce delay with this property.
 
 Emitted events:
 
-**change** - Emitted after an object has been updated and the diff has been calculated. It emits an
-object with these properties.
+**change** - Emitted after an object has been updated and the diff has been calculated. It emits an object with these properties.
 
 * `id: String` - The resource identifier.
 * `keypath: Array<String>` - The JSON Pointer accessor tokens.
@@ -158,8 +166,7 @@ Slot properties:
 
 ## Form Component
 
-The `Form` component is responsible for handling creating and removing resources, so
-at the root of your form you'd have something like:
+The `Form` component is responsible for handling creating and removing resources, so at the root of your form you'd have something like:
 
 ```html
 <Form bind:form let:remove let:create on:create on:remove>
@@ -167,13 +174,9 @@ at the root of your form you'd have something like:
 </Form>
 ```
 
-New resources are placed on the `form.data` object, with an id generated using
-a configurable prefix (by default `GID`) and an incrementing counter, e.g. `GID1`
-will be the id of the first generated resource.
+New resources are placed on the `form.data` object, with an id generated using a configurable prefix (by default `GID`) and an incrementing counter, e.g. `GID1` will be the id of the first generated resource.
 
-The `create` function requires new resources to have their relationship defined,
-so e.g. on a car form you might make a `wheel` resource, but that relationship would
-need to be defined.
+The `create` function requires new resources to have their relationship defined, so e.g. on a car form you might make a `wheel` resource, but that relationship would need to be defined.
 
 ## Form Component Api
 

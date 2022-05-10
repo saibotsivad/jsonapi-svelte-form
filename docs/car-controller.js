@@ -10,7 +10,7 @@ import { load, saving, saved, error } from '../lib/mapper.js'
  */
 export const fetchCar = async ({ id }) => {
 	const response = await GET(id)
-	return load(await response.json())
+	return load(await response.json(), 0)
 }
 
 /**

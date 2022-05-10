@@ -2438,7 +2438,7 @@
 
     	let input_props = {
     		label: "Color",
-    		id: "001",
+    		id: /*form*/ ctx[0].primaryId,
     		keypath: ['attributes', 'color'],
     		readonly: /*readonly*/ ctx[2]
     	};
@@ -2530,6 +2530,7 @@
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
     			const input_changes = {};
+    			if (dirty[0] & /*form*/ 1) input_changes.id = /*form*/ ctx[0].primaryId;
     			if (dirty[0] & /*readonly*/ 4) input_changes.readonly = /*readonly*/ ctx[2];
 
     			if (!updating_form && dirty[0] & /*form*/ 1) {
@@ -3042,7 +3043,7 @@
      */
     const fetchCar = async ({ id }) => {
     	const response = await GET(id);
-    	return load(await response.json())
+    	return load(await response.json(), 0)
     };
 
     /**
@@ -3147,8 +3148,10 @@
     	let t13;
     	let h2;
     	let t15;
+    	let fieldset;
     	let carform;
     	let updating_form;
+    	let fieldset_disabled_value;
     	let t16;
     	let p2;
     	let t18;
@@ -3240,6 +3243,7 @@
     			h2 = element("h2");
     			h2.textContent = "Car Editor";
     			t15 = space();
+    			fieldset = element("fieldset");
     			create_component(carform.$$.fragment);
     			t16 = space();
     			p2 = element("p");
@@ -3279,6 +3283,7 @@
     			pre1 = element("pre");
     			t41 = text(t41_value);
     			button0.disabled = button0_disabled_value = /*form*/ ctx[0].state === 'loading';
+    			fieldset.disabled = fieldset_disabled_value = !/*form*/ ctx[0].state || /*form*/ ctx[0].state === 'loading';
     			button1.disabled = button1_disabled_value = /*form*/ ctx[0].state !== 'changed';
     			button2.disabled = button2_disabled_value = /*form*/ ctx[0].state !== 'changed';
     		},
@@ -3299,7 +3304,8 @@
     			insert(target, t13, anchor);
     			insert(target, h2, anchor);
     			insert(target, t15, anchor);
-    			mount_component(carform, target, anchor);
+    			insert(target, fieldset, anchor);
+    			mount_component(carform, fieldset, null);
     			insert(target, t16, anchor);
     			insert(target, p2, anchor);
     			insert(target, t18, anchor);
@@ -3365,6 +3371,11 @@
     			}
 
     			carform.$set(carform_changes);
+
+    			if (!current || dirty & /*form*/ 1 && fieldset_disabled_value !== (fieldset_disabled_value = !/*form*/ ctx[0].state || /*form*/ ctx[0].state === 'loading')) {
+    				fieldset.disabled = fieldset_disabled_value;
+    			}
+
     			if ((!current || dirty & /*form*/ 1) && t20_value !== (t20_value = /*form*/ ctx[0].state + "")) set_data(t20, t20_value);
 
     			if (!current || dirty & /*form*/ 1 && button1_disabled_value !== (button1_disabled_value = /*form*/ ctx[0].state !== 'changed')) {
@@ -3403,7 +3414,8 @@
     			if (detaching) detach(t13);
     			if (detaching) detach(h2);
     			if (detaching) detach(t15);
-    			destroy_component(carform, detaching);
+    			if (detaching) detach(fieldset);
+    			destroy_component(carform);
     			if (detaching) detach(t16);
     			if (detaching) detach(p2);
     			if (detaching) detach(t18);
