@@ -114,7 +114,7 @@ export interface SavableJsonApiSvelteForm extends JsonApiSvelteForm {
 	 */
 	primaryId: string;
 }
-export function load(body: JsonApiSuccessBody, gidIndex: Number): JsonApiSvelteForm;
+export function load(body: JsonApiSuccessBody, gidIndex?: number): JsonApiSvelteForm;
 export function saved(body: JsonApiSingleResourceSuccessBody): SavableJsonApiSvelteForm;
 
 /**

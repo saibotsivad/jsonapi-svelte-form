@@ -14,7 +14,7 @@ Change categories are:
 * `Fixed` for any bug fixes.
 * `Security` to invite users to upgrade in case of vulnerabilities.
 
-## [Unreleased]
+## Unreleased
 ### Added
 ### Changed
 ### Deprecated
@@ -22,21 +22,19 @@ Change categories are:
 ### Removed
 ### Security
 
-## [0.0.19]
+## [0.0.20](https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.19...v0.0.20) - 2022-05-10
+### Fixed
+- Relationships were not being removed correctly, causing the form to stay in an `unsaved` state even after all changes had been reverted.
+
+## [0.0.19](https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.17...v0.0.19) - 2021-10-29
 ### Added
 - The `create` function now takes `resource` as a property, to create the resource in some initial state. If set, the `id` and `type` will be overwritten.
 
-## [0.0.17]
+## [0.0.17](https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v0.0.17) - 2021-10-21
 ### Changed
 - Based on some conversations with @TehShrike and others, reworked to be Svelte
   components, to gain performant reactivity.
 
-## [0.0.0] - 2021-09-16
+## [0.0.0](https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0-init...v0.0.0) - 2021-09-16
 ### Added
 - Created the base project.
-
-[Unreleased]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...HEAD
-[1.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v1.0.0
-[0.0.19]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.17...v0.0.19
-[0.0.17]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/v0.0.0...v0.0.17
-[0.0.0]: https://github.com/saibotsivad/jsonapi-svelte-form/compare/0.0.0-init...v0.0.0
